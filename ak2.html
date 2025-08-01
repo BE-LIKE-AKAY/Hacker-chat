@@ -3,319 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Chat App</title>
+    <title>FutureChat - Advanced Messaging Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
         * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        
+        .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: white;
-            overflow-x: hidden;
         }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        /* Futuristic Card Design */
-        .card {
+        
+        .glass-effect {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
-            border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 30px;
-            margin: 20px 0;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
         }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        
+        .neon-glow {
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
         }
-
-        /* Button Styles */
-        .btn {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            border: none;
-            padding: 12px 25px;
-            border-radius: 25px;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-            margin: 5px;
+        
+        .chat-bubble {
+            animation: slideInUp 0.3s ease-out;
         }
-
-        .btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(45deg, #74b9ff, #0984e3);
-        }
-
-        .btn-success {
-            background: linear-gradient(45deg, #00b894, #00a085);
-        }
-
-        /* Input Styles */
-        .input-group {
-            margin: 15px 0;
-        }
-
-        .input-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-
-        .input-group input, .input-group select, .input-group textarea {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            font-size: 14px;
-        }
-
-        .input-group input::placeholder {
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        /* Navigation */
-        .nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            margin-bottom: 20px;
-        }
-
-        .nav h1 {
-            font-size: 2rem;
-            background: linear-gradient(45deg, #ff6b6b, #feca57);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 15px;
-        }
-
-        /* Chat Interface */
-        .chat-container {
-            display: grid;
-            grid-template-columns: 300px 1fr 250px;
-            gap: 20px;
-            height: 70vh;
-        }
-
-        .sidebar {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 20px;
-            overflow-y: auto;
-        }
-
-        .chat-main {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chat-header {
-            padding: 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .chat-messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            max-height: 400px;
-        }
-
-        .message {
-            margin: 10px 0;
-            padding: 12px 15px;
-            border-radius: 15px;
-            max-width: 70%;
-            position: relative;
-            animation: fadeInUp 0.3s ease;
-        }
-
-        .message.sent {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            margin-left: auto;
-            text-align: right;
-        }
-
-        .message.received {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .message-time {
-            font-size: 11px;
-            opacity: 0.7;
-            margin-top: 5px;
-        }
-
-        .message-status {
-            font-size: 10px;
-            margin-top: 2px;
-        }
-
-        .chat-input {
-            padding: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .chat-input input {
-            flex: 1;
-            padding: 12px 15px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 25px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-        }
-
-        /* Room List */
-        .room-item {
-            padding: 15px;
-            margin: 10px 0;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border-left: 4px solid transparent;
-        }
-
-        .room-item:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-left-color: #ff6b6b;
-        }
-
-        .room-item.active {
-            background: rgba(255, 107, 107, 0.3);
-            border-left-color: #ff6b6b;
-        }
-
-        /* Online Status */
-        .online-status {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-        }
-
-        .online-status.online {
-            background: #00b894;
-            box-shadow: 0 0 10px #00b894;
-        }
-
-        .online-status.offline {
-            background: #636e72;
-        }
-
-        /* Emoji Reactions */
-        .emoji-reactions {
-            display: flex;
-            gap: 5px;
-            margin-top: 5px;
-        }
-
-        .emoji-btn {
-            background: none;
-            border: none;
-            font-size: 16px;
-            cursor: pointer;
-            padding: 2px 5px;
-            border-radius: 10px;
-            transition: all 0.2s ease;
-        }
-
-        .emoji-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.2);
-        }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .chat-container {
-                grid-template-columns: 1fr;
-                height: auto;
-            }
-            
-            .sidebar {
-                order: 2;
-            }
-            
-            .nav {
-                flex-direction: column;
-                gap: 15px;
-            }
-        }
-
-        /* Animations */
-        @keyframes fadeInUp {
+        
+        @keyframes slideInUp {
             from {
                 opacity: 0;
                 transform: translateY(20px);
@@ -325,265 +45,362 @@
                 transform: translateY(0);
             }
         }
-
-        .animate-in {
-            animation: fadeInUp 0.5s ease;
+        
+        .online-indicator {
+            animation: pulse 2s infinite;
         }
-
-        /* Friend Request Styles */
-        .friend-request {
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .message-status {
+            font-size: 10px;
+            opacity: 0.7;
+        }
+        
+        .reaction-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .reaction-btn:hover {
+            transform: scale(1.2);
+        }
+        
+        .sidebar-item {
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-item:hover {
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 15px;
-            margin: 10px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            transform: translateX(5px);
         }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(45deg, #00b894, #00a085);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            z-index: 1001;
-            animation: slideInRight 0.3s ease;
+        
+        .typing-indicator {
+            animation: typing 1.5s infinite;
         }
-
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-            }
-            to {
-                transform: translateX(0);
-            }
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .profile-pic {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .room-members {
-            font-size: 12px;
-            opacity: 0.8;
-            margin-top: 5px;
+        
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.3; }
+            30% { opacity: 1; }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <!-- Navigation -->
-        <nav class="nav">
-            <h1><i class="fas fa-comments"></i> Advanced Chat</h1>
-            <div class="nav-links" id="navLinks">
-                <button class="btn" onclick="showLogin()">Sign In</button>
-                <button class="btn btn-secondary" onclick="showRegister()">Sign Up</button>
-            </div>
-        </nav>
-
-        <!-- Auth Section -->
-        <div id="authSection">
-            <div class="card animate-in">
-                <h2>Welcome to Advanced Chat</h2>
-                <p>Connect with friends in real-time with our futuristic messaging platform!</p>
-                <div style="text-align: center; margin-top: 20px;">
-                    <button class="btn" onclick="showLogin()">Get Started</button>
+<body class="gradient-bg min-h-screen">
+    <!-- Auth Screen -->
+    <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="glass-effect rounded-2xl p-8 w-full max-w-md animate__animated animate__fadeIn">
+            <!-- Sign In Form -->
+            <div id="signInForm">
+                <h2 class="text-3xl font-bold text-white text-center mb-8">Welcome to FutureChat</h2>
+                <div class="space-y-4">
+                    <input type="email" id="signInEmail" placeholder="Email" class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none">
+                    <input type="password" id="signInPassword" placeholder="Password" class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none">
+                    <button onclick="signIn()" class="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white p-3 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition-all neon-glow">
+                        Sign In
+                    </button>
+                </div>
+                <div class="text-center mt-6 space-y-2">
+                    <p class="text-white/70">Don't have an account? 
+                        <button onclick="showSignUp()" class="text-pink-300 hover:text-pink-200 font-semibold">Sign Up</button>
+                    </p>
+                    <button onclick="showForgotPassword()" class="text-blue-300 hover:text-blue-200 text-sm">Forgot Password?</button>
                 </div>
             </div>
-        </div>
 
-        <!-- Main Chat Interface -->
-        <div id="chatInterface" class="hidden">
-            <div class="chat-container">
-                <!-- Sidebar - Rooms & Friends -->
-                <div class="sidebar">
-                    <div style="margin-bottom: 20px;">
-                        <h3>Chat Rooms</h3>
-                        <button class="btn btn-success" onclick="showCreateRoom()" style="width: 100%; margin-top: 10px;">
-                            <i class="fas fa-plus"></i> Create Room
-                        </button>
-                    </div>
-                    <div id="roomsList"></div>
-                    
-                    <div style="margin-top: 30px;">
-                        <h3>Friends</h3>
-                        <button class="btn btn-secondary" onclick="showAddFriend()" style="width: 100%; margin-top: 10px;">
-                            <i class="fas fa-user-plus"></i> Add Friend
-                        </button>
-                    </div>
-                    <div id="friendsList"></div>
-                </div>
-
-                <!-- Main Chat Area -->
-                <div class="chat-main">
-                    <div class="chat-header">
-                        <div id="currentRoomInfo">
-                            <h3>Select a room to start chatting</h3>
-                        </div>
-                    </div>
-                    <div class="chat-messages" id="chatMessages"></div>
-                    <div class="chat-input">
-                        <input type="text" id="messageInput" placeholder="Type your message..." onkeypress="handleMessageKeyPress(event)">
-                        <button class="btn" onclick="sendMessage()">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Right Sidebar - Online Users & Notifications -->
-                <div class="sidebar">
-                    <h3>Online Users</h3>
-                    <div id="onlineUsers"></div>
-                    
-                    <div style="margin-top: 30px;">
-                        <h3>Notifications</h3>
-                        <div id="notifications"></div>
-                    </div>
-                    
-                    <div style="margin-top: 30px;">
-                        <button class="btn" onclick="showProfile()">
-                            <i class="fas fa-user"></i> Profile
-                        </button>
-                        <button class="btn btn-secondary" onclick="logout()">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Login Modal -->
-    <div id="loginModal" class="modal">
-        <div class="modal-content">
-            <h2>Sign In</h2>
-            <form onsubmit="login(event)">
-                <div class="input-group">
-                    <label>Email</label>
-                    <input type="email" id="loginEmail" required>
-                </div>
-                <div class="input-group">
-                    <label>Password</label>
-                    <input type="password" id="loginPassword" required>
-                </div>
-                <div style="text-align: center; margin-top: 20px;">
-                    <button type="submit" class="btn">Sign In</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('loginModal')">Cancel</button>
-                </div>
-                <div style="text-align: center; margin-top: 15px;">
-                    <a href="#" onclick="showForgotPassword()" style="color: #74b9ff;">Forgot Password?</a>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Register Modal -->
-    <div id="registerModal" class="modal">
-        <div class="modal-content">
-            <h2>Sign Up</h2>
-            <form onsubmit="register(event)">
-                <div class="input-group">
-                    <label>Full Name</label>
-                    <input type="text" id="registerName" required>
-                </div>
-                <div class="input-group">
-                    <label>Username (unique)</label>
-                    <input type="text" id="registerUsername" required>
-                </div>
-                <div class="input-group">
-                    <label>Age</label>
-                    <input type="number" id="registerAge" min="13" required>
-                </div>
-                <div class="input-group">
-                    <label>Gender</label>
-                    <select id="registerGender" required>
+            <!-- Sign Up Form -->
+            <div id="signUpForm" class="hidden">
+                <h2 class="text-3xl font-bold text-white text-center mb-8">Join FutureChat</h2>
+                <div class="space-y-4">
+                    <input type="text" id="signUpName" placeholder="Full Name" class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none">
+                    <input type="text" id="signUpUsername" placeholder="Username (unique)" class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none">
+                    <input type="number" id="signUpAge" placeholder="Age" class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none">
+                    <select id="signUpGender" class="w-full p-3 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white focus:outline-none">
                         <option value="">Select Gender</option>
                         <option value="male">Male</option>
                         <option value="female">Female</option>
                         <option value="other">Other</option>
                     </select>
+                    <input type="tel" id="signUpMobile" placeholder="Mobile Number" class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none">
+                    <input type="email" id="signUpEmail" placeholder="Email" class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none">
+                    <input type="password" id="signUpPassword" placeholder="Password" class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none">
+                    <button onclick="signUp()" class="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white p-3 rounded-lg font-semibold hover:from-green-600 hover:to-blue-600 transition-all neon-glow">
+                        Create Account
+                    </button>
                 </div>
-                <div class="input-group">
-                    <label>Mobile Number</label>
-                    <input type="tel" id="registerMobile" required>
+                <div class="text-center mt-6">
+                    <p class="text-white/70">Already have an account? 
+                        <button onclick="showSignIn()" class="text-pink-300 hover:text-pink-200 font-semibold">Sign In</button>
+                    </p>
                 </div>
-                <div class="input-group">
-                    <label>Email</label>
-                    <input type="email" id="registerEmail" required>
+            </div>
+
+            <!-- Forgot Password Form -->
+            <div id="forgotPasswordForm" class="hidden">
+                <h2 class="text-3xl font-bold text-white text-center mb-8">Reset Password</h2>
+                <div class="space-y-4">
+                    <input type="email" id="resetEmail" placeholder="Enter your email" class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none">
+                    <button onclick="resetPassword()" class="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white p-3 rounded-lg font-semibold hover:from-orange-600 hover:to-red-600 transition-all neon-glow">
+                        Send Reset Email
+                    </button>
                 </div>
-                <div class="input-group">
-                    <label>Password</label>
-                    <input type="password" id="registerPassword" required>
+                <div class="text-center mt-6">
+                    <button onclick="showSignIn()" class="text-blue-300 hover:text-blue-200">Back to Sign In</button>
                 </div>
-                <div style="text-align: center; margin-top: 20px;">
-                    <button type="submit" class="btn">Sign Up</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('registerModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="hidden min-h-screen flex">
+        <!-- Sidebar -->
+        <div class="w-80 glass-effect border-r border-white/20 flex flex-col">
+            <!-- User Profile Header -->
+            <div class="p-6 border-b border-white/20">
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <img id="userAvatar" src="https://via.placeholder.com/50" alt="Avatar" class="w-12 h-12 rounded-full border-2 border-white/30">
+                        <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white online-indicator"></div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 id="userName" class="text-white font-semibold">User Name</h3>
+                        <p id="userStatus" class="text-white/70 text-sm">Online</p>
+                    </div>
+                    <button onclick="showProfile()" class="text-white/70 hover:text-white transition-colors">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                        </svg>
+                    </button>
                 </div>
-            </form>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="flex border-b border-white/20">
+                <button onclick="showTab('chats')" id="chatsTab" class="flex-1 p-4 text-white font-semibold bg-white/10">Chats</button>
+                <button onclick="showTab('friends')" id="friendsTab" class="flex-1 p-4 text-white/70 hover:text-white transition-colors">Friends</button>
+                <button onclick="showTab('rooms')" id="roomsTab" class="flex-1 p-4 text-white/70 hover:text-white transition-colors">Rooms</button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="flex-1 overflow-y-auto">
+                <!-- Chats Tab -->
+                <div id="chatsContent" class="p-4 space-y-2">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-white font-semibold">Recent Chats</h4>
+                        <button onclick="showCreateRoom()" class="text-pink-300 hover:text-pink-200">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="chatsList"></div>
+                </div>
+
+                <!-- Friends Tab -->
+                <div id="friendsContent" class="hidden p-4 space-y-2">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-white font-semibold">Friends</h4>
+                        <button onclick="showAddFriend()" class="text-green-300 hover:text-green-200">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="friendsList"></div>
+                    <div id="friendRequests"></div>
+                </div>
+
+                <!-- Rooms Tab -->
+                <div id="roomsContent" class="hidden p-4 space-y-2">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-white font-semibold">Chat Rooms</h4>
+                        <button onclick="showCreateRoom()" class="text-blue-300 hover:text-blue-200">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="roomsList"></div>
+                </div>
+            </div>
+
+            <!-- Logout Button -->
+            <div class="p-4 border-t border-white/20">
+                <button onclick="logout()" class="w-full bg-red-500/20 text-red-300 p-3 rounded-lg hover:bg-red-500/30 transition-all">
+                    Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="flex-1 flex flex-col">
+            <!-- Chat Header -->
+            <div id="chatHeader" class="p-6 border-b border-white/20 glass-effect">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <img id="chatAvatar" src="https://via.placeholder.com/40" alt="Chat Avatar" class="w-10 h-10 rounded-full">
+                        <div>
+                            <h3 id="chatTitle" class="text-white font-semibold">Select a chat</h3>
+                            <p id="chatStatus" class="text-white/70 text-sm">Click on a chat to start messaging</p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="roomInfoBtn" onclick="showRoomInfo()" class="hidden text-white/70 hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="messagesArea" class="flex-1 overflow-y-auto p-6 space-y-4">
+                <div class="text-center text-white/50 mt-20">
+                    <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/>
+                        <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/>
+                    </svg>
+                    <p class="text-lg">Welcome to FutureChat</p>
+                    <p class="text-sm">Select a conversation to start messaging</p>
+                </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div id="typingIndicator" class="hidden px-6 py-2">
+                <div class="flex items-center space-x-2 text-white/70">
+                    <div class="flex space-x-1">
+                        <div class="w-2 h-2 bg-white/50 rounded-full typing-indicator"></div>
+                        <div class="w-2 h-2 bg-white/50 rounded-full typing-indicator" style="animation-delay: 0.2s;"></div>
+                        <div class="w-2 h-2 bg-white/50 rounded-full typing-indicator" style="animation-delay: 0.4s;"></div>
+                    </div>
+                    <span id="typingUser">Someone is typing...</span>
+                </div>
+            </div>
+
+            <!-- Message Input -->
+            <div id="messageInput" class="p-6 border-t border-white/20">
+                <div class="flex items-center space-x-4">
+                    <div class="flex-1 relative">
+                        <input type="text" id="messageText" placeholder="Type your message..." class="w-full p-3 pr-12 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none">
+                        <button onclick="sendMessage()" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-pink-300 hover:text-pink-200 transition-colors">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Profile Modal -->
+    <div id="profileModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div class="glass-effect rounded-2xl p-8 w-full max-w-md animate__animated animate__fadeIn">
+            <h3 class="text-2xl font-bold text-white mb-6">Profile Settings</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-white/70 text-sm">Profile Picture URL</label>
+                    <input type="url" id="profilePicture" placeholder="https://example.com/image.jpg" class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-white/70 text-sm">Name</label>
+                    <input type="text" id="profileName" class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-white/70 text-sm">Age</label>
+                    <input type="number" id="profileAge" class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-white/70 text-sm">Gender</label>
+                    <select id="profileGender" class="w-full p-3 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white focus:outline-none">
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex space-x-4 mt-6">
+                <button onclick="updateProfile()" class="flex-1 bg-gradient-to-r from-green-500 to-blue-500 text-white p-3 rounded-lg font-semibold hover:from-green-600 hover:to-blue-600 transition-all">
+                    Update Profile
+                </button>
+                <button onclick="closeModal('profileModal')" class="flex-1 bg-white/20 text-white p-3 rounded-lg font-semibold hover:bg-white/30 transition-all">
+                    Cancel
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Create Room Modal -->
-    <div id="createRoomModal" class="modal">
-        <div class="modal-content">
-            <h2>Create Chat Room</h2>
-            <form onsubmit="createRoom(event)">
-                <div class="input-group">
-                    <label>Room Name</label>
-                    <input type="text" id="roomName" required>
+    <div id="createRoomModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div class="glass-effect rounded-2xl p-8 w-full max-w-md animate__animated animate__fadeIn">
+            <h3 class="text-2xl font-bold text-white mb-6">Create Chat Room</h3>
+            <div class="space-y-4">
+                <input type="text" id="roomName" placeholder="Room Name" class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none">
+                <textarea id="roomDescription" placeholder="Room Description (optional)" class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none h-20 resize-none"></textarea>
+                <div class="flex items-center space-x-4">
+                    <label class="flex items-center space-x-2 text-white">
+                        <input type="radio" name="roomType" value="public" checked class="text-pink-500">
+                        <span>Public Room</span>
+                    </label>
+                    <label class="flex items-center space-x-2 text-white">
+                        <input type="radio" name="roomType" value="private" class="text-pink-500">
+                        <span>Private Room</span>
+                    </label>
                 </div>
-                <div class="input-group">
-                    <label>Room Type</label>
-                    <select id="roomType" required>
-                        <option value="public">Public</option>
-                        <option value="private">Private</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>Description</label>
-                    <textarea id="roomDescription" rows="3"></textarea>
-                </div>
-                <div style="text-align: center; margin-top: 20px;">
-                    <button type="submit" class="btn">Create Room</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('createRoomModal')">Cancel</button>
-                </div>
-            </form>
+            </div>
+            <div class="flex space-x-4 mt-6">
+                <button onclick="createRoom()" class="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white p-3 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition-all">
+                    Create Room
+                </button>
+                <button onclick="closeModal('createRoomModal')" class="flex-1 bg-white/20 text-white p-3 rounded-lg font-semibold hover:bg-white/30 transition-all">
+                    Cancel
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Add Friend Modal -->
-    <div id="addFriendModal" class="modal">
-        <div class="modal-content">
-            <h2>Add Friend</h2>
-            <div class="input-group">
-                <label>Search by Username</label>
-                <input type="text" id="friendUsername" placeholder="Enter username">
+    <div id="addFriendModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div class="glass-effect rounded-2xl p-8 w-full max-w-md animate__animated animate__fadeIn">
+            <h3 class="text-2xl font-bold text-white mb-6">Add Friend</h3>
+            <div class="space-y-4">
+                <input type="text" id="friendUsername" placeholder="Enter username" class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none">
+                <div id="userSearchResults" class="space-y-2"></div>
             </div>
-            <div style="text-align: center; margin-top: 20px;">
-                <button class="btn" onclick="searchUser()">Search</button>
-                <button class="btn btn-secondary" onclick="closeModal('addFriendModal')">Cancel</button>
+            <div class="flex space-x-4 mt-6">
+                <button onclick="searchUser()" class="flex-1 bg-gradient-to-r from-green-500 to-blue-500 text-white p-3 rounded-lg font-semibold hover:from-green-600 hover:to-blue-600 transition-all">
+                    Search User
+                </button>
+                <button onclick="closeModal('addFriendModal')" class="flex-1 bg-white/20 text-white p-3 rounded-lg font-semibold hover:bg-white/30 transition-all">
+                    Cancel
+                </button>
             </div>
-            <div id="searchResults" style="margin-top: 20px;"></div>
         </div>
     </div>
 
-    <!-- Profile Modal -->
-    <div id="profileModal" class="modal">
-        <div class="modal-content">
-            <h2>My Profile</h2>
-            <div id="profileContent"></div>
+    <!-- Room Info Modal -->
+    <div id="roomInfoModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div class="glass-effect rounded-2xl p-8 w-full max-w-md animate__animated animate__fadeIn">
+            <h3 class="text-2xl font-bold text-white mb-6">Room Information</h3>
+            <div id="roomInfoContent" class="space-y-4 text-white">
+                <!-- Room info will be populated here -->
+            </div>
+            <div class="flex space-x-4 mt-6">
+                <button onclick="closeModal('roomInfoModal')" class="flex-1 bg-white/20 text-white p-3 rounded-lg font-semibold hover:bg-white/30 transition-all">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notificationToast" class="hidden fixed top-4 right-4 glass-effect rounded-lg p-4 text-white z-50 animate__animated animate__fadeInRight">
+        <div class="flex items-center space-x-3">
+            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span id="notificationText">Notification</span>
         </div>
     </div>
 
@@ -606,115 +423,74 @@
         const db = firebase.firestore();
         const rtdb = firebase.database();
 
-        // Global Variables
+        // Global variables
         let currentUser = null;
-        let currentRoom = null;
-        let messagesListener = null;
-
-        // Authentication State Observer
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                currentUser = user;
-                loadUserProfile();
-                showChatInterface();
-                updateOnlineStatus(true);
-                loadRooms();
-                loadFriends();
-                loadNotifications();
-                setupPresence();
-                setupNotificationListener();
-            } else {
-                currentUser = null;
-                showAuthSection();
-            }
-        });
-
-        // Show/Hide Sections
-        function showAuthSection() {
-            document.getElementById('authSection').classList.remove('hidden');
-            document.getElementById('chatInterface').classList.add('hidden');
-            document.getElementById('navLinks').innerHTML = `
-                <button class="btn" onclick="showLogin()">Sign In</button>
-                <button class="btn btn-secondary" onclick="showRegister()">Sign Up</button>
-            `;
-        }
-
-        function showChatInterface() {
-            document.getElementById('authSection').classList.add('hidden');
-            document.getElementById('chatInterface').classList.remove('hidden');
-            document.getElementById('navLinks').innerHTML = `
-                <span>Welcome, ${currentUser.displayName || currentUser.email}</span>
-            `;
-        }
-
-        // Modal Functions
-        function showLogin() {
-            document.getElementById('loginModal').classList.add('active');
-        }
-
-        function showRegister() {
-            document.getElementById('registerModal').classList.add('active');
-        }
-
-        function showCreateRoom() {
-            document.getElementById('createRoomModal').classList.add('active');
-        }
-
-        function showAddFriend() {
-            document.getElementById('addFriendModal').classList.add('active');
-        }
-
-        function showProfile() {
-            loadProfileModal();
-            document.getElementById('profileModal').classList.add('active');
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('active');
-        }
+        let currentChat = null;
+        let currentChatType = null; // 'friend' or 'room'
+        let typingTimeout = null;
 
         // Authentication Functions
-        async function login(event) {
-            event.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
+        function showSignIn() {
+            document.getElementById('signInForm').classList.remove('hidden');
+            document.getElementById('signUpForm').classList.add('hidden');
+            document.getElementById('forgotPasswordForm').classList.add('hidden');
+        }
+
+        function showSignUp() {
+            document.getElementById('signInForm').classList.add('hidden');
+            document.getElementById('signUpForm').classList.remove('hidden');
+            document.getElementById('forgotPasswordForm').classList.add('hidden');
+        }
+
+        function showForgotPassword() {
+            document.getElementById('signInForm').classList.add('hidden');
+            document.getElementById('signUpForm').classList.add('hidden');
+            document.getElementById('forgotPasswordForm').classList.remove('hidden');
+        }
+
+        async function signIn() {
+            const email = document.getElementById('signInEmail').value;
+            const password = document.getElementById('signInPassword').value;
+
+            if (!email || !password) {
+                showNotification('Please fill in all fields');
+                return;
+            }
 
             try {
                 await auth.signInWithEmailAndPassword(email, password);
-                closeModal('loginModal');
-                showNotification('Welcome back!', 'success');
+                showNotification('Welcome back!');
             } catch (error) {
-                showNotification(error.message, 'error');
+                showNotification(error.message);
             }
         }
 
-        async function register(event) {
-            event.preventDefault();
-            const name = document.getElementById('registerName').value;
-            const username = document.getElementById('registerUsername').value;
-            const age = document.getElementById('registerAge').value;
-            const gender = document.getElementById('registerGender').value;
-            const mobile = document.getElementById('registerMobile').value;
-            const email = document.getElementById('registerEmail').value;
-            const password = document.getElementById('registerPassword').value;
+        async function signUp() {
+            const name = document.getElementById('signUpName').value;
+            const username = document.getElementById('signUpUsername').value;
+            const age = document.getElementById('signUpAge').value;
+            const gender = document.getElementById('signUpGender').value;
+            const mobile = document.getElementById('signUpMobile').value;
+            const email = document.getElementById('signUpEmail').value;
+            const password = document.getElementById('signUpPassword').value;
+
+            if (!name || !username || !age || !gender || !mobile || !email || !password) {
+                showNotification('Please fill in all fields');
+                return;
+            }
 
             try {
                 // Check if username is unique
                 const usernameCheck = await db.collection('users').where('username', '==', username).get();
                 if (!usernameCheck.empty) {
-                    showNotification('Username already exists!', 'error');
+                    showNotification('Username already exists. Please choose another.');
                     return;
                 }
 
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
-                // Update profile
-                await user.updateProfile({
-                    displayName: name
-                });
-
-                // Save user data to Firestore
+                // Create user profile
                 await db.collection('users').doc(user.uid).set({
                     name: name,
                     username: username,
@@ -722,760 +498,811 @@
                     gender: gender,
                     mobile: mobile,
                     email: email,
-                    profilePicture: '',
+                    profilePicture: 'https://via.placeholder.com/100',
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
                     isOnline: true
                 });
 
-                closeModal('registerModal');
-                showNotification('Account created successfully!', 'success');
+                showNotification('Account created successfully!');
             } catch (error) {
-                showNotification(error.message, 'error');
+                showNotification(error.message);
+            }
+        }
+
+        async function resetPassword() {
+            const email = document.getElementById('resetEmail').value;
+
+            if (!email) {
+                showNotification('Please enter your email');
+                return;
+            }
+
+            try {
+                await auth.sendPasswordResetEmail(email);
+                showNotification('Password reset email sent!');
+                showSignIn();
+            } catch (error) {
+                showNotification(error.message);
             }
         }
 
         async function logout() {
-            try {
-                await updateOnlineStatus(false);
-                await auth.signOut();
-                showNotification('Logged out successfully!', 'success');
-            } catch (error) {
-                showNotification(error.message, 'error');
+            if (currentUser) {
+                // Update online status
+                await db.collection('users').doc(currentUser.uid).update({
+                    isOnline: false,
+                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                });
             }
+            await auth.signOut();
         }
 
-        // User Profile Functions
+        // Auth State Observer
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                
+                // Update online status
+                await db.collection('users').doc(user.uid).update({
+                    isOnline: true,
+                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                loadUserProfile();
+                loadChats();
+                loadFriends();
+                loadRooms();
+                setupRealtimeListeners();
+            } else {
+                currentUser = null;
+                document.getElementById('authScreen').classList.remove('hidden');
+                document.getElementById('mainApp').classList.add('hidden');
+            }
+        });
+
+        // Profile Functions
         async function loadUserProfile() {
             try {
                 const userDoc = await db.collection('users').doc(currentUser.uid).get();
                 if (userDoc.exists) {
                     const userData = userDoc.data();
-                    // Update last seen
-                    await db.collection('users').doc(currentUser.uid).update({
-                        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                        isOnline: true
-                    });
+                    document.getElementById('userName').textContent = userData.name;
+                    document.getElementById('userAvatar').src = userData.profilePicture || 'https://via.placeholder.com/50';
+                    
+                    // Populate profile modal
+                    document.getElementById('profileName').value = userData.name;
+                    document.getElementById('profileAge').value = userData.age;
+                    document.getElementById('profileGender').value = userData.gender;
+                    document.getElementById('profilePicture').value = userData.profilePicture || '';
                 }
-            } catch (error) {
-                console.error('Error loading user profile:', error);
-            }
-        }
-
-        async function loadProfileModal() {
-            try {
-                const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                const userData = userDoc.data();
-                
-                document.getElementById('profileContent').innerHTML = `
-                    <div class="input-group">
-                        <label>Profile Picture URL</label>
-                        <input type="url" id="profilePicUrl" value="${userData.profilePicture || ''}" placeholder="Enter image URL">
-                    </div>
-                    <div class="input-group">
-                        <label>Name</label>
-                        <input type="text" id="profileName" value="${userData.name}">
-                    </div>
-                    <div class="input-group">
-                        <label>Age</label>
-                        <input type="number" id="profileAge" value="${userData.age}">
-                    </div>
-                    <div class="input-group">
-                        <label>Gender</label>
-                        <select id="profileGender">
-                            <option value="male" ${userData.gender === 'male' ? 'selected' : ''}>Male</option>
-                            <option value="female" ${userData.gender === 'female' ? 'selected' : ''}>Female</option>
-                            <option value="other" ${userData.gender === 'other' ? 'selected' : ''}>Other</option>
-                        </select>
-                    </div>
-                    <div style="text-align: center; margin-top: 20px;">
-                        <button class="btn" onclick="updateProfile()">Update Profile</button>
-                        <button class="btn btn-secondary" onclick="closeModal('profileModal')">Cancel</button>
-                    </div>
-                `;
             } catch (error) {
                 console.error('Error loading profile:', error);
             }
         }
 
+        function showProfile() {
+            document.getElementById('profileModal').classList.remove('hidden');
+        }
+
         async function updateProfile() {
-            try {
-                const profileData = {
-                    profilePicture: document.getElementById('profilePicUrl').value,
-                    name: document.getElementById('profileName').value,
-                    age: parseInt(document.getElementById('profileAge').value),
-                    gender: document.getElementById('profileGender').value
-                };
+            const name = document.getElementById('profileName').value;
+            const age = document.getElementById('profileAge').value;
+            const gender = document.getElementById('profileGender').value;
+            const profilePicture = document.getElementById('profilePicture').value;
 
-                await db.collection('users').doc(currentUser.uid).update(profileData);
-                await currentUser.updateProfile({
-                    displayName: profileData.name
-                });
-
-                closeModal('profileModal');
-                showNotification('Profile updated successfully!', 'success');
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        }
-
-        // Room Functions
-        async function createRoom(event) {
-            event.preventDefault();
-            const roomName = document.getElementById('roomName').value;
-            const roomType = document.getElementById('roomType').value;
-            const roomDescription = document.getElementById('roomDescription').value;
-
-            try {
-                // Get current user data
-                const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                const userData = userDoc.data();
-
-                const roomData = {
-                    name: roomName,
-                    type: roomType,
-                    description: roomDescription,
-                    createdBy: currentUser.uid,
-                    createdByName: userData.name || currentUser.displayName,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    members: [currentUser.uid],
-                    memberCount: 1,
-                    lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-                };
-
-                const roomRef = await db.collection('rooms').add(roomData);
-                
-                // Add room activity
-                await db.collection('roomActivity').add({
-                    roomId: roomRef.id,
-                    userId: currentUser.uid,
-                    userName: userData.name || currentUser.displayName,
-                    action: 'created',
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                // Clear form
-                document.getElementById('roomName').value = '';
-                document.getElementById('roomDescription').value = '';
-                
-                closeModal('createRoomModal');
-                showNotification('Room created successfully!', 'success');
-                loadRooms();
-            } catch (error) {
-                console.error('Error creating room:', error);
-                showNotification('Failed to create room: ' + error.message, 'error');
-            }
-        }
-
-        async function loadRooms() {
-            try {
-                // First load rooms where user is a member
-                const roomsSnapshot = await db.collection('rooms')
-                    .where('members', 'array-contains', currentUser.uid)
-                    .get();
-
-                // Also load public rooms
-                const publicRoomsSnapshot = await db.collection('rooms')
-                    .where('type', '==', 'public')
-                    .get();
-
-                const roomsList = document.getElementById('roomsList');
-                roomsList.innerHTML = '';
-
-                const allRooms = new Map();
-
-                // Add user's rooms
-                roomsSnapshot.forEach((doc) => {
-                    allRooms.set(doc.id, { ...doc.data(), id: doc.id, isMember: true });
-                });
-
-                // Add public rooms (if not already added)
-                publicRoomsSnapshot.forEach((doc) => {
-                    if (!allRooms.has(doc.id)) {
-                        allRooms.set(doc.id, { ...doc.data(), id: doc.id, isMember: false });
-                    }
-                });
-
-                // Sort by creation date
-                const sortedRooms = Array.from(allRooms.values()).sort((a, b) => {
-                    if (!a.createdAt || !b.createdAt) return 0;
-                    return b.createdAt.toDate() - a.createdAt.toDate();
-                });
-
-                sortedRooms.forEach((room) => {
-                    const roomElement = document.createElement('div');
-                    roomElement.className = 'room-item';
-                    roomElement.setAttribute('data-room-id', room.id);
-                    roomElement.onclick = () => joinRoom(room.id, room);
-                    
-                    roomElement.innerHTML = `
-                        <div>
-                            <strong>${room.name}</strong>
-                            <div class="room-members">
-                                <i class="fas fa-users"></i> ${room.memberCount || 0} members
-                                ${room.type === 'private' ? '<i class="fas fa-lock"></i>' : '<i class="fas fa-globe"></i>'}
-                                ${!room.isMember ? '<span style="color: #74b9ff; font-size: 11px;">• Join</span>' : ''}
-                            </div>
-                            ${room.description ? `<div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">${room.description}</div>` : ''}
-                        </div>
-                    `;
-                    
-                    roomsList.appendChild(roomElement);
-                });
-
-                if (sortedRooms.length === 0) {
-                    roomsList.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 20px;">No rooms available. Create your first room!</div>';
-                }
-            } catch (error) {
-                console.error('Error loading rooms:', error);
-                showNotification('Failed to load rooms', 'error');
-            }
-        }
-
-        async function joinRoom(roomId, roomData) {
-            try {
-                // If user is not a member of the room, add them
-                if (!roomData.isMember && roomData.type === 'public') {
-                    await db.collection('rooms').doc(roomId).update({
-                        members: firebase.firestore.FieldValue.arrayUnion(currentUser.uid),
-                        memberCount: firebase.firestore.FieldValue.increment(1)
-                    });
-
-                    // Add room activity
-                    const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                    const userData = userDoc.data();
-                    
-                    await db.collection('roomActivity').add({
-                        roomId: roomId,
-                        userId: currentUser.uid,
-                        userName: userData.name || currentUser.displayName,
-                        action: 'joined',
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-
-                    // Refresh rooms list
-                    loadRooms();
-                }
-
-                currentRoom = roomId;
-                
-                // Update UI
-                document.getElementById('currentRoomInfo').innerHTML = `
-                    <h3>${roomData.name}</h3>
-                    <p><i class="fas fa-users"></i> ${roomData.memberCount || 0} members</p>
-                    ${roomData.description ? `<p style="font-size: 14px; opacity: 0.8;">${roomData.description}</p>` : ''}
-                `;
-
-                // Update active room styling
-                document.querySelectorAll('.room-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-                
-                const roomElement = document.querySelector(`[data-room-id="${roomId}"]`);
-                if (roomElement) {
-                    roomElement.classList.add('active');
-                }
-
-                // Load messages
-                loadMessages(roomId);
-                
-                // Enable message input
-                document.getElementById('messageInput').disabled = false;
-                document.getElementById('messageInput').placeholder = `Type your message in ${roomData.name}...`;
-                
-            } catch (error) {
-                console.error('Error joining room:', error);
-                showNotification('Failed to join room', 'error');
-            }
-        }
-
-        // Messaging Functions
-        function loadMessages(roomId) {
-            // Clear previous listener
-            if (messagesListener) {
-                messagesListener();
-            }
-
-            const messagesContainer = document.getElementById('chatMessages');
-            messagesContainer.innerHTML = '<div style="text-align: center; padding: 20px; opacity: 0.7;">Loading messages...</div>';
-
-            const messagesRef = db.collection('messages')
-                .where('roomId', '==', roomId)
-                .orderBy('timestamp', 'asc')
-                .limit(50);
-
-            messagesListener = messagesRef.onSnapshot((snapshot) => {
-                messagesContainer.innerHTML = '';
-
-                if (snapshot.empty) {
-                    messagesContainer.innerHTML = '<div style="text-align: center; padding: 20px; opacity: 0.7;">No messages yet. Start the conversation!</div>';
-                    return;
-                }
-
-                snapshot.forEach((doc) => {
-                    const message = doc.data();
-                    displayMessage(message, doc.id);
-                });
-
-                // Scroll to bottom
-                setTimeout(() => {
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                }, 100);
-            }, (error) => {
-                console.error('Error loading messages:', error);
-                messagesContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #ff6b6b;">Failed to load messages</div>';
-            });
-        }
-
-        function displayMessage(message, messageId) {
-            const messagesContainer = document.getElementById('chatMessages');
-            const messageElement = document.createElement('div');
-            messageElement.className = `message ${message.senderId === currentUser.uid ? 'sent' : 'received'}`;
-            messageElement.setAttribute('data-message-id', messageId);
-            
-            const timestamp = message.timestamp ? 
-                new Date(message.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 
-                'Sending...';
-            
-            const senderName = message.senderId !== currentUser.uid ? message.senderName : '';
-            
-            messageElement.innerHTML = `
-                ${senderName ? `<div style="font-size: 12px; opacity: 0.8; margin-bottom: 5px;">${senderName}</div>` : ''}
-                <div style="word-wrap: break-word;">${escapeHtml(message.text)}</div>
-                <div class="message-time">${timestamp}</div>
-                ${message.senderId === currentUser.uid ? `
-                    <div class="message-status">
-                        <i class="fas fa-check${message.delivered ? '-double' : ''}"></i>
-                        ${message.seen ? 'Seen' : message.delivered ? 'Delivered' : 'Sent'}
-                    </div>
-                ` : ''}
-                <div class="emoji-reactions">
-                    <button class="emoji-btn" onclick="addReaction('${messageId}', '🔥')" title="Fire">🔥</button>
-                    <button class="emoji-btn" onclick="addReaction('${messageId}', '❤️')" title="Love">❤️</button>
-                    <button class="emoji-btn" onclick="addReaction('${messageId}', '😂')" title="Laugh">😂</button>
-                    <button class="emoji-btn" onclick="addReaction('${messageId}', '👍')" title="Like">👍</button>
-                </div>
-                ${message.reactions && Object.keys(message.reactions).length > 0 ? `
-                    <div style="margin-top: 5px;">
-                        ${Object.entries(message.reactions).map(([emoji, users]) => 
-                            users.length > 0 ? `<span style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 10px; margin-right: 5px; font-size: 12px;">${emoji} ${users.length}</span>` : ''
-                        ).join('')}
-                    </div>
-                ` : ''}
-            `;
-            
-            messagesContainer.appendChild(messageElement);
-        }
-
-        // Helper function to escape HTML
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        async function sendMessage() {
-            const messageInput = document.getElementById('messageInput');
-            const messageText = messageInput.value.trim();
-            
-            if (!messageText || !currentRoom) {
-                if (!currentRoom) {
-                    showNotification('Please select a room first', 'info');
-                }
+            if (!name || !age || !gender) {
+                showNotification('Please fill in all required fields');
                 return;
             }
 
             try {
-                // Get current user data
-                const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                const userData = userDoc.data();
-
-                // Add message to Firestore
-                await db.collection('messages').add({
-                    roomId: currentRoom,
-                    senderId: currentUser.uid,
-                    senderName: userData.name || currentUser.displayName || currentUser.email,
-                    text: messageText,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    delivered: true,
-                    seen: false,
-                    reactions: {}
+                await db.collection('users').doc(currentUser.uid).update({
+                    name: name,
+                    age: parseInt(age),
+                    gender: gender,
+                    profilePicture: profilePicture || 'https://via.placeholder.com/100'
                 });
 
-                // Update room's last activity
-                await db.collection('rooms').doc(currentRoom).update({
-                    lastActivity: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastMessage: messageText,
-                    lastMessageBy: userData.name || currentUser.displayName
-                });
-
-                messageInput.value = '';
-                messageInput.focus();
+                showNotification('Profile updated successfully!');
+                closeModal('profileModal');
+                loadUserProfile();
             } catch (error) {
-                console.error('Error sending message:', error);
-                showNotification('Failed to send message: ' + error.message, 'error');
+                showNotification('Error updating profile');
             }
         }
 
-        function handleMessageKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
+        // Tab Functions
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.getElementById('chatsContent').classList.add('hidden');
+            document.getElementById('friendsContent').classList.add('hidden');
+            document.getElementById('roomsContent').classList.add('hidden');
+
+            // Remove active class from all tabs
+            document.getElementById('chatsTab').classList.remove('bg-white/10');
+            document.getElementById('friendsTab').classList.remove('bg-white/10');
+            document.getElementById('roomsTab').classList.remove('bg-white/10');
+
+            // Show selected tab content and mark as active
+            document.getElementById(tabName + 'Content').classList.remove('hidden');
+            document.getElementById(tabName + 'Tab').classList.add('bg-white/10');
+        }
+
+        // Chat Functions
+        async function loadChats() {
+            try {
+                // Load friend chats
+                const friendsSnapshot = await db.collection('friends')
+                    .where('users', 'array-contains', currentUser.uid)
+                    .where('status', '==', 'accepted')
+                    .get();
+
+                const chatsList = document.getElementById('chatsList');
+                chatsList.innerHTML = '';
+
+                for (const doc of friendsSnapshot.docs) {
+                    const friendData = doc.data();
+                    const friendId = friendData.users.find(id => id !== currentUser.uid);
+                    
+                    const friendDoc = await db.collection('users').doc(friendId).get();
+                    if (friendDoc.exists) {
+                        const friend = friendDoc.data();
+                        const chatItem = createChatItem(friendId, friend.name, friend.profilePicture, 'friend', friend.isOnline);
+                        chatsList.appendChild(chatItem);
+                    }
+                }
+
+                // Load room chats
+                const roomsSnapshot = await db.collection('roomMembers')
+                    .where('userId', '==', currentUser.uid)
+                    .get();
+
+                for (const doc of roomsSnapshot.docs) {
+                    const memberData = doc.data();
+                    const roomDoc = await db.collection('rooms').doc(memberData.roomId).get();
+                    
+                    if (roomDoc.exists) {
+                        const room = roomDoc.data();
+                        const chatItem = createChatItem(memberData.roomId, room.name, 'https://via.placeholder.com/40', 'room', true);
+                        chatsList.appendChild(chatItem);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading chats:', error);
+            }
+        }
+
+        function createChatItem(id, name, avatar, type, isOnline) {
+            const div = document.createElement('div');
+            div.className = 'sidebar-item p-3 rounded-lg cursor-pointer';
+            div.onclick = () => openChat(id, type);
+            
+            div.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <div class="relative">
+                        <img src="${avatar}" alt="${name}" class="w-10 h-10 rounded-full">
+                        ${isOnline ? '<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border border-white"></div>' : ''}
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-white font-medium">${name}</h4>
+                        <p class="text-white/70 text-sm">${type === 'room' ? 'Room' : isOnline ? 'Online' : 'Offline'}</p>
+                    </div>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        async function openChat(chatId, type) {
+            currentChat = chatId;
+            currentChatType = type;
+
+            if (type === 'friend') {
+                const friendDoc = await db.collection('users').doc(chatId).get();
+                if (friendDoc.exists) {
+                    const friend = friendDoc.data();
+                    document.getElementById('chatTitle').textContent = friend.name;
+                    document.getElementById('chatAvatar').src = friend.profilePicture;
+                    document.getElementById('chatStatus').textContent = friend.isOnline ? 'Online' : `Last seen ${formatTimestamp(friend.lastSeen)}`;
+                    document.getElementById('roomInfoBtn').classList.add('hidden');
+                }
+            } else if (type === 'room') {
+                const roomDoc = await db.collection('rooms').doc(chatId).get();
+                if (roomDoc.exists) {
+                    const room = roomDoc.data();
+                    document.getElementById('chatTitle').textContent = room.name;
+                    document.getElementById('chatAvatar').src = 'https://via.placeholder.com/40';
+                    document.getElementById('chatStatus').textContent = room.description || 'Chat room';
+                    document.getElementById('roomInfoBtn').classList.remove('hidden');
+                }
+            }
+
+            loadMessages();
+        }
+
+        async function loadMessages() {
+            if (!currentChat || !currentChatType) return;
+
+            const messagesArea = document.getElementById('messagesArea');
+            messagesArea.innerHTML = '';
+
+            let messagesRef;
+            if (currentChatType === 'friend') {
+                const chatId = [currentUser.uid, currentChat].sort().join('_');
+                messagesRef = db.collection('messages').doc(chatId).collection('messages').orderBy('timestamp');
+            } else {
+                messagesRef = db.collection('rooms').doc(currentChat).collection('messages').orderBy('timestamp');
+            }
+
+            messagesRef.onSnapshot((snapshot) => {
+                messagesArea.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const message = doc.data();
+                    const messageElement = createMessageElement(message, doc.id);
+                    messagesArea.appendChild(messageElement);
+                });
+                messagesArea.scrollTop = messagesArea.scrollHeight;
+            });
+        }
+
+        function createMessageElement(message, messageId) {
+            const div = document.createElement('div');
+            const isOwn = message.senderId === currentUser.uid;
+            
+            div.className = `chat-bubble flex ${isOwn ? 'justify-end' : 'justify-start'}`;
+            
+            const messageTime = message.timestamp ? new Date(message.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+            
+            div.innerHTML = `
+                <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${isOwn ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' : 'bg-white/20 text-white'}">
+                    ${!isOwn ? `<p class="text-xs text-white/70 mb-1">${message.senderName}</p>` : ''}
+                    <p>${message.text}</p>
+                    <div class="flex items-center justify-between mt-2">
+                        <div class="flex space-x-1">
+                            <button onclick="addReaction('${messageId}', '❤️')" class="reaction-btn text-xs hover:scale-110">❤️</button>
+                            <button onclick="addReaction('${messageId}', '😂')" class="reaction-btn text-xs hover:scale-110">😂</button>
+                            <button onclick="addReaction('${messageId}', '🔥')" class="reaction-btn text-xs hover:scale-110">🔥</button>
+                        </div>
+                        <div class="text-right">
+                            <p class="message-status text-xs">${messageTime}</p>
+                            ${isOwn ? `<p class="message-status text-xs">${message.status || 'Sent'}</p>` : ''}
+                        </div>
+                    </div>
+                    ${message.reactions ? `<div class="flex space-x-1 mt-1">${Object.entries(message.reactions).map(([emoji, count]) => `<span class="text-xs bg-white/20 px-1 rounded">${emoji} ${count}</span>`).join('')}</div>` : ''}
+                </div>
+            `;
+            
+            return div;
+        }
+
+        async function sendMessage() {
+            const messageText = document.getElementById('messageText').value.trim();
+            if (!messageText || !currentChat || !currentChatType) return;
+
+            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+            const userData = userDoc.data();
+
+            const messageData = {
+                text: messageText,
+                senderId: currentUser.uid,
+                senderName: userData.name,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                status: 'sent'
+            };
+
+            try {
+                if (currentChatType === 'friend') {
+                    const chatId = [currentUser.uid, currentChat].sort().join('_');
+                    await db.collection('messages').doc(chatId).collection('messages').add(messageData);
+                } else {
+                    await db.collection('rooms').doc(currentChat).collection('messages').add(messageData);
+                }
+
+                document.getElementById('messageText').value = '';
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showNotification('Failed to send message');
             }
         }
 
         async function addReaction(messageId, emoji) {
+            if (!currentChat || !currentChatType) return;
+
+            let messageRef;
+            if (currentChatType === 'friend') {
+                const chatId = [currentUser.uid, currentChat].sort().join('_');
+                messageRef = db.collection('messages').doc(chatId).collection('messages').doc(messageId);
+            } else {
+                messageRef = db.collection('rooms').doc(currentChat).collection('messages').doc(messageId);
+            }
+
             try {
-                const messageRef = db.collection('messages').doc(messageId);
-                const messageDoc = await messageRef.get();
-                const messageData = messageDoc.data();
-                
-                const reactions = messageData.reactions || {};
-                if (!reactions[emoji]) {
-                    reactions[emoji] = [];
-                }
-                
-                if (!reactions[emoji].includes(currentUser.uid)) {
-                    reactions[emoji].push(currentUser.uid);
-                    await messageRef.update({ reactions });
-                }
+                await db.runTransaction(async (transaction) => {
+                    const messageDoc = await transaction.get(messageRef);
+                    if (messageDoc.exists) {
+                        const data = messageDoc.data();
+                        const reactions = data.reactions || {};
+                        reactions[emoji] = (reactions[emoji] || 0) + 1;
+                        transaction.update(messageRef, { reactions });
+                    }
+                });
             } catch (error) {
                 console.error('Error adding reaction:', error);
             }
         }
 
-        // Friend System Functions
-        async function searchUser() {
-            const username = document.getElementById('friendUsername').value.trim();
-            if (!username) return;
-
-            try {
-                const usersSnapshot = await db.collection('users')
-                    .where('username', '==', username)
-                    .get();
-
-                const searchResults = document.getElementById('searchResults');
-                searchResults.innerHTML = '';
-
-                if (usersSnapshot.empty) {
-                    searchResults.innerHTML = '<p>No user found with that username.</p>';
-                    return;
-                }
-
-                usersSnapshot.forEach((doc) => {
-                    const user = doc.data();
-                    if (doc.id !== currentUser.uid) {
-                        const userElement = document.createElement('div');
-                        userElement.className = 'friend-request';
-                        userElement.innerHTML = `
-                            <div>
-                                <strong>${user.name}</strong>
-                                <div>@${user.username}</div>
-                            </div>
-                            <button class="btn" onclick="sendFriendRequest('${doc.id}')">
-                                <i class="fas fa-user-plus"></i> Add Friend
-                            </button>
-                        `;
-                        searchResults.appendChild(userElement);
-                    }
-                });
-            } catch (error) {
-                showNotification('Error searching for user', 'error');
-            }
-        }
-
-        async function sendFriendRequest(targetUserId) {
-            try {
-                // Check if already friends or request exists
-                const existingRequest = await db.collection('friendRequests')
-                    .where('from', '==', currentUser.uid)
-                    .where('to', '==', targetUserId)
-                    .get();
-
-                if (!existingRequest.empty) {
-                    showNotification('Friend request already sent!', 'info');
-                    return;
-                }
-
-                // Get current user data
-                const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
-                const currentUserData = currentUserDoc.data();
-
-                await db.collection('friendRequests').add({
-                    from: currentUser.uid,
-                    to: targetUserId,
-                    status: 'pending',
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                // Send notification to target user
-                await db.collection('notifications').add({
-                    userId: targetUserId,
-                    type: 'friend_request',
-                    title: 'New Friend Request',
-                    message: `${currentUserData.name || currentUserData.username} sent you a friend request`,
-                    read: false,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                showNotification('Friend request sent!', 'success');
-                closeModal('addFriendModal');
-            } catch (error) {
-                console.error('Error sending friend request:', error);
-                showNotification('Error sending friend request', 'error');
-            }
-        }
-
+        // Friends Functions
         async function loadFriends() {
             try {
-                // Load friend requests
-                const requestsSnapshot = await db.collection('friendRequests')
-                    .where('to', '==', currentUser.uid)
-                    .where('status', '==', 'pending')
-                    .get();
-
                 const friendsList = document.getElementById('friendsList');
-                friendsList.innerHTML = '';
-
-                // Display pending requests
-                for (const doc of requestsSnapshot.docs) {
-                    const request = doc.data();
-                    const senderDoc = await db.collection('users').doc(request.from).get();
-                    const sender = senderDoc.data();
-
-                    const requestElement = document.createElement('div');
-                    requestElement.className = 'friend-request';
-                    requestElement.innerHTML = `
-                        <div>
-                            <strong>${sender.name}</strong>
-                            <div>Friend Request</div>
-                        </div>
-                        <div>
-                            <button class="btn btn-success" onclick="acceptFriendRequest('${doc.id}', '${request.from}')">
-                                <i class="fas fa-check"></i>
-                            </button>
-                            <button class="btn" onclick="declineFriendRequest('${doc.id}')">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    `;
-                    friendsList.appendChild(requestElement);
-                }
+                const friendRequests = document.getElementById('friendRequests');
+                
+                friendsList.innerHTML = '<h5 class="text-white/70 text-sm font-semibold mb-2">Friends</h5>';
+                friendRequests.innerHTML = '<h5 class="text-white/70 text-sm font-semibold mb-2 mt-4">Friend Requests</h5>';
 
                 // Load accepted friends
                 const friendsSnapshot = await db.collection('friends')
                     .where('users', 'array-contains', currentUser.uid)
+                    .where('status', '==', 'accepted')
                     .get();
 
                 for (const doc of friendsSnapshot.docs) {
-                    const friendship = doc.data();
-                    const friendId = friendship.users.find(id => id !== currentUser.uid);
+                    const friendData = doc.data();
+                    const friendId = friendData.users.find(id => id !== currentUser.uid);
+                    
                     const friendDoc = await db.collection('users').doc(friendId).get();
-                    const friend = friendDoc.data();
+                    if (friendDoc.exists) {
+                        const friend = friendDoc.data();
+                        const friendItem = createFriendItem(friend, friendId, 'friend');
+                        friendsList.appendChild(friendItem);
+                    }
+                }
 
-                    const friendElement = document.createElement('div');
-                    friendElement.className = 'room-item';
-                    friendElement.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span class="online-status ${friend.isOnline ? 'online' : 'offline'}"></span>
-                            <div>
-                                <strong>${friend.name}</strong>
-                                <div style="font-size: 12px; opacity: 0.8;">
-                                    ${friend.isOnline ? 'Online' : 'Last seen: ' + (friend.lastSeen ? new Date(friend.lastSeen.toDate()).toLocaleString() : 'Unknown')}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    friendsList.appendChild(friendElement);
+                // Load pending friend requests
+                const requestsSnapshot = await db.collection('friends')
+                    .where('receiverId', '==', currentUser.uid)
+                    .where('status', '==', 'pending')
+                    .get();
+
+                for (const doc of requestsSnapshot.docs) {
+                    const requestData = doc.data();
+                    const senderDoc = await db.collection('users').doc(requestData.senderId).get();
+                    
+                    if (senderDoc.exists) {
+                        const sender = senderDoc.data();
+                        const requestItem = createFriendItem(sender, requestData.senderId, 'request', doc.id);
+                        friendRequests.appendChild(requestItem);
+                    }
                 }
             } catch (error) {
                 console.error('Error loading friends:', error);
             }
         }
 
-        async function acceptFriendRequest(requestId, fromUserId) {
-            try {
-                // Create friendship
-                await db.collection('friends').add({
-                    users: [currentUser.uid, fromUserId],
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                // Update request status
-                await db.collection('friendRequests').doc(requestId).update({
-                    status: 'accepted'
-                });
-
-                // Get current user data for notification
-                const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
-                const currentUserData = currentUserDoc.data();
-
-                // Send notification to the friend requester
-                await db.collection('notifications').add({
-                    userId: fromUserId,
-                    type: 'friend_request_accepted',
-                    title: 'Friend Request Accepted!',
-                    message: `${currentUserData.name || currentUserData.username} accepted your friend request`,
-                    read: false,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                showNotification('Friend request accepted!', 'success');
-                loadFriends();
-                loadNotifications(); // Refresh notifications
-            } catch (error) {
-                console.error('Error accepting friend request:', error);
-                showNotification('Error accepting friend request', 'error');
-            }
-        }
-
-        async function declineFriendRequest(requestId) {
-            try {
-                await db.collection('friendRequests').doc(requestId).update({
-                    status: 'declined'
-                });
-
-                showNotification('Friend request declined', 'info');
-                loadFriends();
-            } catch (error) {
-                showNotification('Error declining friend request', 'error');
-            }
-        }
-
-        // Online Status & Presence
-        async function updateOnlineStatus(isOnline) {
-            if (!currentUser) return;
-
-            try {
-                await db.collection('users').doc(currentUser.uid).update({
-                    isOnline: isOnline,
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            } catch (error) {
-                console.error('Error updating online status:', error);
-            }
-        }
-
-        function setupPresence() {
-            // Update online status when user becomes active/inactive
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
-                    updateOnlineStatus(false);
-                } else {
-                    updateOnlineStatus(true);
-                }
-            });
-
-            // Update status before page unload
-            window.addEventListener('beforeunload', () => {
-                updateOnlineStatus(false);
-            });
-        }
-
-        // Notification System
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = 'notification';
-            notification.innerHTML = `
-                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-                ${message}
-            `;
+        function createFriendItem(user, userId, type, requestId = null) {
+            const div = document.createElement('div');
+            div.className = 'sidebar-item p-3 rounded-lg';
             
-            document.body.appendChild(notification);
+            if (type === 'friend') {
+                div.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="relative">
+                            <img src="${user.profilePicture}" alt="${user.name}" class="w-10 h-10 rounded-full">
+                            ${user.isOnline ? '<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border border-white"></div>' : ''}
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-white font-medium">${user.name}</h4>
+                            <p class="text-white/70 text-sm">@${user.username}</p>
+                        </div>
+                        <button onclick="openChat('${userId}', 'friend')" class="text-blue-300 hover:text-blue-200">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+            } else if (type === 'request') {
+                div.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <img src="${user.profilePicture}" alt="${user.name}" class="w-10 h-10 rounded-full">
+                        <div class="flex-1">
+                            <h4 class="text-white font-medium">${user.name}</h4>
+                            <p class="text-white/70 text-sm">@${user.username}</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="respondToFriendRequest('${requestId}', 'accepted')" class="text-green-300 hover:text-green-200">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+                                </svg>
+                            </button>
+                            <button onclick="respondToFriendRequest('${requestId}', 'declined')" class="text-red-300 hover:text-red-200">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
             
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
+            return div;
         }
 
-        // Notification Functions
-        async function loadNotifications() {
-            if (!currentUser) return;
+        function showAddFriend() {
+            document.getElementById('addFriendModal').classList.remove('hidden');
+        }
+
+        async function searchUser() {
+            const username = document.getElementById('friendUsername').value.trim();
+            if (!username) {
+                showNotification('Please enter a username');
+                return;
+            }
 
             try {
-                const notificationsSnapshot = await db.collection('notifications')
-                    .where('userId', '==', currentUser.uid)
-                    .orderBy('timestamp', 'desc')
-                    .limit(10)
-                    .get();
+                const userSnapshot = await db.collection('users').where('username', '==', username).get();
+                const resultsDiv = document.getElementById('userSearchResults');
+                resultsDiv.innerHTML = '';
 
-                const notificationsContainer = document.getElementById('notifications');
-                notificationsContainer.innerHTML = '';
-
-                if (notificationsSnapshot.empty) {
-                    notificationsContainer.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 10px;">No notifications</div>';
+                if (userSnapshot.empty) {
+                    resultsDiv.innerHTML = '<p class="text-white/70 text-center">User not found</p>';
                     return;
                 }
 
-                notificationsSnapshot.forEach((doc) => {
-                    const notification = doc.data();
-                    const notificationElement = document.createElement('div');
-                    notificationElement.className = 'friend-request';
-                    notificationElement.style.background = notification.read ? 'rgba(255,255,255,0.05)' : 'rgba(74,185,255,0.2)';
-                    
-                    const timestamp = notification.timestamp ? 
-                        new Date(notification.timestamp.toDate()).toLocaleDateString() : 
-                        'Just now';
-                    
-                    notificationElement.innerHTML = `
-                        <div>
-                            <strong>${notification.title}</strong>
-                            <div style="font-size: 12px; opacity: 0.8;">${notification.message}</div>
-                            <div style="font-size: 11px; opacity: 0.6; margin-top: 5px;">${timestamp}</div>
-                        </div>
-                        ${!notification.read ? `
-                            <button class="btn" onclick="markNotificationRead('${doc.id}')" style="padding: 5px 10px; font-size: 12px;">
-                                <i class="fas fa-check"></i>
-                            </button>
-                        ` : ''}
-                    `;
-                    
-                    notificationsContainer.appendChild(notificationElement);
-                });
-            } catch (error) {
-                console.error('Error loading notifications:', error);
-            }
-        }
+                const userDoc = userSnapshot.docs[0];
+                const userData = userDoc.data();
+                const userId = userDoc.id;
 
-        async function markNotificationRead(notificationId) {
-            try {
-                await db.collection('notifications').doc(notificationId).update({
-                    read: true
-                });
-                loadNotifications();
-            } catch (error) {
-                console.error('Error marking notification as read:', error);
-            }
-        }
+                if (userId === currentUser.uid) {
+                    resultsDiv.innerHTML = '<p class="text-white/70 text-center">You cannot add yourself</p>';
+                    return;
+                }
 
-        // Real-time notification listener
-        function setupNotificationListener() {
-            if (!currentUser) return;
+                // Check if already friends or request pending
+                const existingFriend = await db.collection('friends')
+                    .where('users', 'array-contains', currentUser.uid)
+                    .get();
 
-            db.collection('notifications')
-                .where('userId', '==', currentUser.uid)
-                .where('read', '==', false)
-                .onSnapshot((snapshot) => {
-                    snapshot.docChanges().forEach((change) => {
-                        if (change.type === 'added') {
-                            const notification = change.doc.data();
-                            showNotification(notification.message, 'success');
-                            loadNotifications(); // Refresh the notifications panel
-                        }
-                    });
-                });
-        }
-
-        // Initialize app
-        document.addEventListener('DOMContentLoaded', () => {
-            // Close modals when clicking outside
-            document.querySelectorAll('.modal').forEach(modal => {
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        modal.classList.remove('active');
+                let alreadyConnected = false;
+                existingFriend.forEach(doc => {
+                    const data = doc.data();
+                    if (data.users.includes(userId)) {
+                        alreadyConnected = true;
                     }
                 });
+
+                if (alreadyConnected) {
+                    resultsDiv.innerHTML = '<p class="text-white/70 text-center">Already connected or request pending</p>';
+                    return;
+                }
+
+                resultsDiv.innerHTML = `
+                    <div class="flex items-center space-x-3 p-3 bg-white/10 rounded-lg">
+                        <img src="${userData.profilePicture}" alt="${userData.name}" class="w-10 h-10 rounded-full">
+                        <div class="flex-1">
+                            <h4 class="text-white font-medium">${userData.name}</h4>
+                            <p class="text-white/70 text-sm">@${userData.username}</p>
+                        </div>
+                        <button onclick="sendFriendRequest('${userId}')" class="bg-green-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-green-600 transition-colors">
+                            Add Friend
+                        </button>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error searching user:', error);
+                showNotification('Error searching for user');
+            }
+        }
+
+        async function sendFriendRequest(receiverId) {
+            try {
+                await db.collection('friends').add({
+                    senderId: currentUser.uid,
+                    receiverId: receiverId,
+                    users: [currentUser.uid, receiverId],
+                    status: 'pending',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                showNotification('Friend request sent!');
+                closeModal('addFriendModal');
+            } catch (error) {
+                console.error('Error sending friend request:', error);
+                showNotification('Failed to send friend request');
+            }
+        }
+
+        async function respondToFriendRequest(requestId, response) {
+            try {
+                await db.collection('friends').doc(requestId).update({
+                    status: response,
+                    respondedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                showNotification(`Friend request ${response}!`);
+                loadFriends();
+                loadChats();
+            } catch (error) {
+                console.error('Error responding to friend request:', error);
+                showNotification('Failed to respond to friend request');
+            }
+        }
+
+        // Room Functions
+        async function loadRooms() {
+            try {
+                const roomsList = document.getElementById('roomsList');
+                roomsList.innerHTML = '';
+
+                // Load rooms user is a member of
+                const memberSnapshot = await db.collection('roomMembers')
+                    .where('userId', '==', currentUser.uid)
+                    .get();
+
+                for (const doc of memberSnapshot.docs) {
+                    const memberData = doc.data();
+                    const roomDoc = await db.collection('rooms').doc(memberData.roomId).get();
+                    
+                    if (roomDoc.exists) {
+                        const room = roomDoc.data();
+                        const roomItem = createRoomItem(room, memberData.roomId);
+                        roomsList.appendChild(roomItem);
+                    }
+                }
+
+                // Load public rooms
+                const publicRoomsSnapshot = await db.collection('rooms')
+                    .where('type', '==', 'public')
+                    .limit(10)
+                    .get();
+
+                if (!roomsList.innerHTML) {
+                    roomsList.innerHTML = '<h5 class="text-white/70 text-sm font-semibold mb-2">Public Rooms</h5>';
+                }
+
+                publicRoomsSnapshot.forEach(doc => {
+                    const room = doc.data();
+                    // Check if user is already a member
+                    const isMember = memberSnapshot.docs.some(memberDoc => memberDoc.data().roomId === doc.id);
+                    if (!isMember) {
+                        const roomItem = createRoomItem(room, doc.id, false);
+                        roomsList.appendChild(roomItem);
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading rooms:', error);
+            }
+        }
+
+        function createRoomItem(room, roomId, isMember = true) {
+            const div = document.createElement('div');
+            div.className = 'sidebar-item p-3 rounded-lg';
+            
+            div.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-white font-medium">${room.name}</h4>
+                        <p class="text-white/70 text-sm">${room.type === 'private' ? '🔒 Private' : '🌐 Public'}</p>
+                    </div>
+                    ${isMember ? 
+                        `<button onclick="openChat('${roomId}', 'room')" class="text-blue-300 hover:text-blue-200">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/>
+                            </svg>
+                        </button>` :
+                        `<button onclick="joinRoom('${roomId}')" class="bg-blue-500 text-white px-2 py-1 rounded text-sm hover:bg-blue-600 transition-colors">
+                            Join
+                        </button>`
+                    }
+                </div>
+            `;
+            
+            return div;
+        }
+
+        function showCreateRoom() {
+            document.getElementById('createRoomModal').classList.remove('hidden');
+        }
+
+        async function createRoom() {
+            const name = document.getElementById('roomName').value.trim();
+            const description = document.getElementById('roomDescription').value.trim();
+            const type = document.querySelector('input[name="roomType"]:checked').value;
+
+            if (!name) {
+                showNotification('Please enter a room name');
+                return;
+            }
+
+            try {
+                const roomData = {
+                    name: name,
+                    description: description,
+                    type: type,
+                    creatorId: currentUser.uid,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    memberCount: 1
+                };
+
+                const roomRef = await db.collection('rooms').add(roomData);
+
+                // Add creator as member
+                await db.collection('roomMembers').add({
+                    roomId: roomRef.id,
+                    userId: currentUser.uid,
+                    joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    role: 'creator'
+                });
+
+                showNotification('Room created successfully!');
+                closeModal('createRoomModal');
+                loadRooms();
+                
+                // Clear form
+                document.getElementById('roomName').value = '';
+                document.getElementById('roomDescription').value = '';
+            } catch (error) {
+                console.error('Error creating room:', error);
+                showNotification('Failed to create room');
+            }
+        }
+
+        async function joinRoom(roomId) {
+            try {
+                // Check if room requires approval
+                const roomDoc = await db.collection('rooms').doc(roomId).get();
+                const room = roomDoc.data();
+
+                if (room.type === 'private') {
+                    // For private rooms, send join request
+                    await db.collection('joinRequests').add({
+                        roomId: roomId,
+                        userId: currentUser.uid,
+                        status: 'pending',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    showNotification('Join request sent to room creator');
+                } else {
+                    // For public rooms, join directly
+                    await db.collection('roomMembers').add({
+                        roomId: roomId,
+                        userId: currentUser.uid,
+                        joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        role: 'member'
+                    });
+
+                    // Update member count
+                    await db.collection('rooms').doc(roomId).update({
+                        memberCount: firebase.firestore.FieldValue.increment(1)
+                    });
+
+                    showNotification('Joined room successfully!');
+                    loadRooms();
+                    loadChats();
+                }
+            } catch (error) {
+                console.error('Error joining room:', error);
+                showNotification('Failed to join room');
+            }
+        }
+
+        async function showRoomInfo() {
+            if (!currentChat || currentChatType !== 'room') return;
+
+            try {
+                const roomDoc = await db.collection('rooms').doc(currentChat).get();
+                const room = roomDoc.data();
+
+                const membersSnapshot = await db.collection('roomMembers')
+                    .where('roomId', '==', currentChat)
+                    .get();
+
+                let membersInfo = '';
+                for (const doc of membersSnapshot.docs) {
+                    const memberData = doc.data();
+                    const userDoc = await db.collection('users').doc(memberData.userId).get();
+                    if (userDoc.exists) {
+                        const user = userDoc.data();
+                        const joinedDate = memberData.joinedAt ? new Date(memberData.joinedAt.toDate()).toLocaleDateString() : 'Unknown';
+                        membersInfo += `
+                            <div class="flex items-center space-x-3 p-2 bg-white/10 rounded-lg">
+                                <img src="${user.profilePicture}" alt="${user.name}" class="w-8 h-8 rounded-full">
+                                <div class="flex-1">
+                                    <p class="font-medium">${user.name}</p>
+                                    <p class="text-sm text-white/70">Joined: ${joinedDate}</p>
+                                </div>
+                                <span class="text-xs bg-purple-500/30 px-2 py-1 rounded">${memberData.role}</span>
+                            </div>
+                        `;
+                    }
+                }
+
+                document.getElementById('roomInfoContent').innerHTML = `
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-semibold mb-2">Room Details</h4>
+                            <p><strong>Name:</strong> ${room.name}</p>
+                            <p><strong>Type:</strong> ${room.type}</p>
+                            <p><strong>Description:</strong> ${room.description || 'No description'}</p>
+                            <p><strong>Created:</strong> ${room.createdAt ? new Date(room.createdAt.toDate()).toLocaleDateString() : 'Unknown'}</p>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-2">Members (${membersSnapshot.size})</h4>
+                            <div class="space-y-2 max-h-40 overflow-y-auto">
+                                ${membersInfo}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('roomInfoModal').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading room info:', error);
+                showNotification('Failed to load room information');
+            }
+        }
+
+        // Utility Functions
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function showNotification(message) {
+            const toast = document.getElementById('notificationToast');
+            const text = document.getElementById('notificationText');
+            
+            text.textContent = message;
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return 'Unknown';
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+            return date.toLocaleDateString();
+        }
+
+        function setupRealtimeListeners() {
+            // Listen for typing indicators
+            document.getElementById('messageText').addEventListener('input', () => {
+                if (currentChat && currentChatType) {
+                    clearTimeout(typingTimeout);
+                    // In a real app, you'd send typing status to other users
+                    typingTimeout = setTimeout(() => {
+                        // Stop typing indicator
+                    }, 1000);
+                }
             });
+
+            // Listen for Enter key to send message
+            document.getElementById('messageText').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        }
+
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // App will initialize through auth state observer
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9687240e655359e8',t:'MTc1NDA3MDIzOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96873db6d1ed5517',t:'MTc1NDA3MTI4OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
