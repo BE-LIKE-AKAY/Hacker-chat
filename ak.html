@@ -862,33 +862,53 @@
                 return;
             }
 
+            if (!currentUser) {
+                showNotification('Please sign in first', 'error');
+                return;
+            }
+
             try {
-                const roomRef = database.ref('rooms').push();
-                await roomRef.set({
+                // Generate a unique room ID
+                const roomId = 'room_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                
+                // Create room data
+                const roomData = {
                     name: name,
-                    description: description,
+                    description: description || 'No description',
                     type: type,
                     creator: currentUser.uid,
-                    createdAt: firebase.database.ServerValue.TIMESTAMP,
-                    members: {
-                        [currentUser.uid]: {
-                            joinedAt: firebase.database.ServerValue.TIMESTAMP,
-                            role: 'admin'
-                        }
-                    }
-                });
+                    createdAt: Date.now(),
+                    members: {}
+                };
+                
+                // Add creator as first member
+                roomData.members[currentUser.uid] = {
+                    joinedAt: Date.now(),
+                    role: 'admin',
+                    username: currentUser.displayName || 'Admin'
+                };
+
+                // Create the room
+                await database.ref('rooms/' + roomId).set(roomData);
 
                 // Add to user's rooms
-                await database.ref('userRooms/' + currentUser.uid + '/' + roomRef.key).set({
-                    joinedAt: firebase.database.ServerValue.TIMESTAMP,
-                    timeSpent: 0
+                await database.ref('userRooms/' + currentUser.uid + '/' + roomId).set({
+                    joinedAt: Date.now(),
+                    timeSpent: 0,
+                    roomName: name
                 });
+
+                // Clear form
+                document.getElementById('roomName').value = '';
+                document.getElementById('roomDescription').value = '';
+                document.getElementById('roomType').value = 'public';
 
                 closeModal('createRoomModal');
                 showNotification('Room created successfully!', 'success');
                 loadRooms();
             } catch (error) {
-                showNotification(error.message, 'error');
+                console.error('Room creation error:', error);
+                showNotification('Failed to create room: ' + error.message, 'error');
             }
         }
 
@@ -1031,35 +1051,78 @@
 
         // Friend Functions
         async function searchUsers() {
-            const query = document.getElementById('userSearch').value.toLowerCase();
+            const query = document.getElementById('userSearch').value.toLowerCase().trim();
+            const searchResults = document.getElementById('searchResults');
+            
             if (query.length < 2) {
-                document.getElementById('searchResults').innerHTML = '';
+                searchResults.innerHTML = '';
                 return;
             }
             
-            const usersSnapshot = await database.ref('users').once('value');
-            const users = usersSnapshot.val() || {};
+            if (!currentUser) {
+                searchResults.innerHTML = '<div style="color: #ff4444; padding: 10px;">Please sign in to search users</div>';
+                return;
+            }
             
-            const searchResults = document.getElementById('searchResults');
-            searchResults.innerHTML = '';
-            
-            Object.keys(users).forEach(userId => {
-                const user = users[userId];
-                if (userId !== currentUser.uid && user.username.toLowerCase().includes(query)) {
-                    const resultElement = document.createElement('div');
-                    resultElement.className = 'user-search-result';
-                    resultElement.onclick = () => showUserProfile(userId);
-                    
-                    resultElement.innerHTML = `
-                        <div><strong>👤 ${user.username}</strong></div>
-                        <div style="font-size: 0.8em; opacity: 0.7;">
-                            ${user.age} years old • ${user.gender}
-                        </div>
-                    `;
-                    
-                    searchResults.appendChild(resultElement);
+            try {
+                const usersSnapshot = await database.ref('users').once('value');
+                const users = usersSnapshot.val() || {};
+                
+                // Get current friends to avoid showing them in search
+                const friendsSnapshot = await database.ref('friends/' + currentUser.uid).once('value');
+                const friends = friendsSnapshot.val() || {};
+                
+                // Get pending friend requests to show status
+                const sentRequestsSnapshot = await database.ref('friendRequests').once('value');
+                const allRequests = sentRequestsSnapshot.val() || {};
+                
+                searchResults.innerHTML = '<h5 style="margin-bottom: 10px;">🔍 SEARCH RESULTS</h5>';
+                
+                let foundUsers = false;
+                
+                Object.keys(users).forEach(userId => {
+                    const user = users[userId];
+                    if (userId !== currentUser.uid && 
+                        user.username && 
+                        user.username.toLowerCase().includes(query) &&
+                        !friends[userId]) { // Don't show existing friends
+                        
+                        foundUsers = true;
+                        const resultElement = document.createElement('div');
+                        resultElement.className = 'user-search-result';
+                        
+                        // Check if friend request already sent
+                        const requestSent = allRequests[userId] && allRequests[userId][currentUser.uid] && 
+                                          allRequests[userId][currentUser.uid].status === 'pending';
+                        
+                        const onlineIndicator = user.online ? 
+                            '<span class="online-indicator"></span>' : 
+                            '<span class="offline-indicator"></span>';
+                        
+                        resultElement.innerHTML = `
+                            <div>${onlineIndicator}<strong>👤 ${user.username}</strong></div>
+                            <div style="font-size: 0.8em; opacity: 0.7; margin: 3px 0;">
+                                ${user.age} years • ${user.gender}
+                            </div>
+                            <div style="margin-top: 8px;">
+                                ${requestSent ? 
+                                    '<button class="btn btn-secondary" disabled style="font-size: 0.8em; padding: 6px 12px;">📤 Request Sent</button>' :
+                                    `<button class="btn" onclick="sendFriendRequest('${userId}')" style="font-size: 0.8em; padding: 6px 12px;">➕ Add Friend</button>`
+                                }
+                            </div>
+                        `;
+                        
+                        searchResults.appendChild(resultElement);
+                    }
+                });
+                
+                if (!foundUsers) {
+                    searchResults.innerHTML += '<div style="text-align: center; opacity: 0.5; padding: 20px;">No users found matching "' + query + '"</div>';
                 }
-            });
+            } catch (error) {
+                console.error('Search error:', error);
+                searchResults.innerHTML = '<div style="color: #ff4444; padding: 10px;">Search failed. Please try again.</div>';
+            }
         }
 
         async function showUserProfile(userId) {
@@ -1072,42 +1135,94 @@
         }
 
         async function sendFriendRequest(userId) {
+            if (!currentUser) {
+                showNotification('Please sign in first', 'error');
+                return;
+            }
+            
             try {
+                // Check if already friends
+                const friendCheck = await database.ref('friends/' + currentUser.uid + '/' + userId).once('value');
+                if (friendCheck.exists()) {
+                    showNotification('Already friends with this user', 'error');
+                    return;
+                }
+                
+                // Check if request already sent
+                const requestCheck = await database.ref('friendRequests/' + userId + '/' + currentUser.uid).once('value');
+                if (requestCheck.exists() && requestCheck.val().status === 'pending') {
+                    showNotification('Friend request already sent', 'error');
+                    return;
+                }
+                
+                // Send friend request
                 await database.ref('friendRequests/' + userId + '/' + currentUser.uid).set({
-                    timestamp: firebase.database.ServerValue.TIMESTAMP,
-                    status: 'pending'
+                    timestamp: Date.now(),
+                    status: 'pending',
+                    senderUsername: currentUser.displayName || 'Unknown'
                 });
                 
-                showNotification('Friend request sent!', 'success');
+                // Send notification to recipient
+                await database.ref('notifications/' + userId).push({
+                    type: 'friend_request',
+                    from: currentUser.uid,
+                    timestamp: Date.now(),
+                    message: 'New friend request received'
+                });
+                
+                showNotification('Friend request sent successfully!', 'success');
+                
+                // Refresh search results to show updated status
+                searchUsers();
+                
             } catch (error) {
-                showNotification('Failed to send friend request', 'error');
+                console.error('Friend request error:', error);
+                showNotification('Failed to send friend request: ' + error.message, 'error');
             }
         }
 
         async function loadFriendRequests() {
-            const requestsSnapshot = await database.ref('friendRequests/' + currentUser.uid).once('value');
-            const requests = requestsSnapshot.val() || {};
+            if (!currentUser) return;
             
-            const friendRequests = document.getElementById('friendRequests');
-            friendRequests.innerHTML = '';
-            
-            for (const senderId in requests) {
-                if (requests[senderId].status === 'pending') {
-                    const senderSnapshot = await database.ref('users/' + senderId).once('value');
-                    const sender = senderSnapshot.val();
-                    
-                    const requestElement = document.createElement('div');
-                    requestElement.className = 'friend-request';
-                    
-                    requestElement.innerHTML = `
-                        <div><strong>👤 ${sender.username}</strong></div>
-                        <div style="font-size: 0.8em; margin: 5px 0;">Friend Request</div>
-                        <button class="btn" onclick="acceptFriendRequest('${senderId}')" style="margin-right: 5px;">Accept</button>
-                        <button class="btn btn-secondary" onclick="declineFriendRequest('${senderId}')">Decline</button>
-                    `;
-                    
-                    friendRequests.appendChild(requestElement);
+            try {
+                const requestsSnapshot = await database.ref('friendRequests/' + currentUser.uid).once('value');
+                const requests = requestsSnapshot.val() || {};
+                
+                const friendRequests = document.getElementById('friendRequests');
+                friendRequests.innerHTML = '';
+                
+                let hasRequests = false;
+                
+                for (const senderId in requests) {
+                    if (requests[senderId].status === 'pending') {
+                        hasRequests = true;
+                        const senderSnapshot = await database.ref('users/' + senderId).once('value');
+                        const sender = senderSnapshot.val();
+                        
+                        if (sender) {
+                            const requestElement = document.createElement('div');
+                            requestElement.className = 'friend-request';
+                            
+                            requestElement.innerHTML = `
+                                <div><strong>👤 ${sender.username}</strong></div>
+                                <div style="font-size: 0.8em; margin: 5px 0; opacity: 0.7;">${sender.age} years • ${sender.gender}</div>
+                                <div style="font-size: 0.8em; margin: 5px 0;">📩 Friend Request</div>
+                                <div style="margin-top: 10px;">
+                                    <button class="btn" onclick="acceptFriendRequest('${senderId}')" style="margin-right: 5px; font-size: 0.8em; padding: 8px 12px;">✓ Accept</button>
+                                    <button class="btn btn-secondary" onclick="declineFriendRequest('${senderId}')" style="font-size: 0.8em; padding: 8px 12px;">✗ Decline</button>
+                                </div>
+                            `;
+                            
+                            friendRequests.appendChild(requestElement);
+                        }
+                    }
                 }
+                
+                if (!hasRequests) {
+                    friendRequests.innerHTML = '<div style="text-align: center; opacity: 0.5; padding: 10px; font-size: 0.9em;">No pending friend requests</div>';
+                }
+            } catch (error) {
+                console.error('Error loading friend requests:', error);
             }
         }
 
@@ -1162,35 +1277,52 @@
         }
 
         async function loadFriends() {
-            const friendsSnapshot = await database.ref('friends/' + currentUser.uid).once('value');
-            const friends = friendsSnapshot.val() || {};
+            if (!currentUser) return;
             
-            const friendsList = document.getElementById('friendsList');
-            friendsList.innerHTML = '<h4 style="margin-bottom: 10px;">👥 MY FRIENDS</h4>';
-            
-            for (const friendId in friends) {
-                const friendSnapshot = await database.ref('users/' + friendId).once('value');
-                const friend = friendSnapshot.val();
+            try {
+                const friendsSnapshot = await database.ref('friends/' + currentUser.uid).once('value');
+                const friends = friendsSnapshot.val() || {};
                 
-                if (friend) {
-                    const friendElement = document.createElement('div');
-                    friendElement.className = 'friend-item';
-                    friendElement.onclick = () => startDirectChat(friendId);
-                    
-                    const onlineIndicator = friend.online ? 
-                        '<span class="online-indicator"></span>' : 
-                        '<span class="offline-indicator"></span>';
-                    
-                    const lastSeen = friend.online ? 'Online' : 
-                        'Last seen: ' + new Date(friend.lastSeen).toLocaleString();
-                    
-                    friendElement.innerHTML = `
-                        <div>${onlineIndicator}<strong>${friend.username}</strong></div>
-                        <div style="font-size: 0.8em; opacity: 0.7;">${lastSeen}</div>
-                    `;
-                    
-                    friendsList.appendChild(friendElement);
+                const friendsList = document.getElementById('friendsList');
+                friendsList.innerHTML = '<h4 style="margin-bottom: 10px;">👥 MY FRIENDS</h4>';
+                
+                if (Object.keys(friends).length === 0) {
+                    friendsList.innerHTML += '<div style="text-align: center; opacity: 0.5; padding: 20px;">No friends yet. Search for users above to send friend requests!</div>';
+                    return;
                 }
+                
+                for (const friendId in friends) {
+                    try {
+                        const friendSnapshot = await database.ref('users/' + friendId).once('value');
+                        const friend = friendSnapshot.val();
+                        
+                        if (friend) {
+                            const friendElement = document.createElement('div');
+                            friendElement.className = 'friend-item';
+                            friendElement.onclick = () => startDirectChat(friendId);
+                            
+                            const onlineIndicator = friend.online ? 
+                                '<span class="online-indicator"></span>' : 
+                                '<span class="offline-indicator"></span>';
+                            
+                            const lastSeen = friend.online ? 'Online' : 
+                                (friend.lastSeen ? 'Last seen: ' + new Date(friend.lastSeen).toLocaleString() : 'Last seen: Unknown');
+                            
+                            friendElement.innerHTML = `
+                                <div>${onlineIndicator}<strong>${friend.username}</strong></div>
+                                <div style="font-size: 0.8em; opacity: 0.7;">${lastSeen}</div>
+                                <div style="font-size: 0.7em; opacity: 0.5;">${friend.age} years • ${friend.gender}</div>
+                            `;
+                            
+                            friendsList.appendChild(friendElement);
+                        }
+                    } catch (error) {
+                        console.error('Error loading friend:', friendId, error);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading friends:', error);
+                showNotification('Failed to load friends', 'error');
             }
         }
 
@@ -1412,13 +1544,13 @@
                 // Update user online status
                 await database.ref('users/' + user.uid).update({
                     online: true,
-                    lastSeen: firebase.database.ServerValue.TIMESTAMP
+                    lastSeen: Date.now()
                 });
                 
                 // Set up disconnect handler
                 database.ref('users/' + user.uid).onDisconnect().update({
                     online: false,
-                    lastSeen: firebase.database.ServerValue.TIMESTAMP
+                    lastSeen: Date.now()
                 });
                 
                 document.getElementById('authSection').style.display = 'none';
@@ -1427,6 +1559,9 @@
                 loadRooms();
                 loadFriends();
                 loadFriendRequests();
+                
+                // Set up real-time listeners
+                setupRealTimeListeners();
                 
                 // Load system stats
                 updateSystemStats();
@@ -1437,6 +1572,33 @@
                 document.getElementById('mainApp').style.display = 'none';
             }
         });
+
+        function setupRealTimeListeners() {
+            if (!currentUser) return;
+            
+            // Listen for friend requests
+            database.ref('friendRequests/' + currentUser.uid).on('value', (snapshot) => {
+                loadFriendRequests();
+            });
+            
+            // Listen for friends list changes
+            database.ref('friends/' + currentUser.uid).on('value', (snapshot) => {
+                loadFriends();
+            });
+            
+            // Listen for user status changes
+            database.ref('users').on('child_changed', (snapshot) => {
+                const userId = snapshot.key;
+                const userData = snapshot.val();
+                
+                // Update friend status if they're in our friends list
+                database.ref('friends/' + currentUser.uid + '/' + userId).once('value').then(friendSnapshot => {
+                    if (friendSnapshot.exists()) {
+                        loadFriends(); // Refresh friends list to show updated status
+                    }
+                });
+            });
+        }
 
         async function updateSystemStats() {
             // Count online users
@@ -1462,5 +1624,5 @@
             canvas.height = window.innerHeight;
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96838ba965c254f8',t:'MTc1NDAzMjUzOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'968398b3c541fadc',t:'MTc1NDAzMzA3My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
