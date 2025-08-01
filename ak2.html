@@ -140,7 +140,7 @@
     </div>
 
     <!-- Authentication Screen -->
-    <div id="authScreen" class="hidden min-h-screen flex items-center justify-center p-4">
+    <div id="authScreen" class="hidden fixed inset-0 min-h-screen flex items-center justify-center p-4 z-50 cyber-bg">
         <div class="glass-panel rounded-lg p-8 w-full max-w-md animate__animated animate__fadeInUp">
             <h1 class="neon-text text-3xl font-bold text-center mb-8">CYBERCHAT</h1>
             
@@ -195,7 +195,7 @@
     </div>
 
     <!-- Main App -->
-    <div id="mainApp" class="hidden">
+    <div id="mainApp" class="hidden fixed inset-0 cyber-bg">
         <!-- Header -->
         <header class="glass-panel p-4 flex justify-between items-center">
             <div class="flex items-center space-x-4">
@@ -621,19 +621,24 @@
 
         function createFriendRequestElement(userId, user) {
             const div = document.createElement('div');
-            div.className = 'glass-panel p-3 rounded mb-2';
+            div.className = 'glass-panel p-3 rounded mb-2 animate__animated animate__fadeInUp';
             
             div.innerHTML = `
                 <div class="flex justify-between items-center">
-                    <div>
-                        <div class="font-bold">${user.name}</div>
-                        <div class="text-sm text-gray-400">@${user.username}</div>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full flex items-center justify-center">
+                            👤
+                        </div>
+                        <div>
+                            <div class="font-bold">${user.name}</div>
+                            <div class="text-sm text-gray-400">@${user.username}</div>
+                        </div>
                     </div>
                     <div class="space-x-2">
                         <button onclick="respondToFriendRequest('${userId}', 'accepted')" 
-                                class="bg-green-600 px-2 py-1 rounded text-xs">Accept</button>
+                                class="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-xs transition-colors">✓ Accept</button>
                         <button onclick="respondToFriendRequest('${userId}', 'declined')" 
-                                class="bg-red-600 px-2 py-1 rounded text-xs">Decline</button>
+                                class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs transition-colors">✗ Decline</button>
                     </div>
                 </div>
             `;
@@ -695,9 +700,13 @@
             }
 
             try {
+                console.log('Searching for username:', username);
+                
                 const querySnapshot = await db.collection('users')
                     .where('username', '==', username)
                     .get();
+
+                console.log('Query result:', querySnapshot.size, 'documents found');
 
                 if (querySnapshot.empty) {
                     alert('User not found');
@@ -707,6 +716,8 @@
                 const userDoc = querySnapshot.docs[0];
                 const userData = userDoc.data();
                 const userId = userDoc.id;
+
+                console.log('Found user:', userData.name, userId);
 
                 if (userId === currentUser.uid) {
                     alert('You cannot add yourself as a friend');
@@ -722,9 +733,17 @@
                     return;
                 }
 
-                const existingRequest = userData.friendRequests?.find(req => req.from === currentUser.uid);
-                if (existingRequest) {
+                // Check both directions for friend requests
+                const existingRequestToUser = userData.friendRequests?.find(req => req.from === currentUser.uid && req.status === 'pending');
+                const existingRequestFromUser = currentUserData.friendRequests?.find(req => req.from === userId && req.status === 'pending');
+                
+                if (existingRequestToUser) {
                     alert('Friend request already sent');
+                    return;
+                }
+
+                if (existingRequestFromUser) {
+                    alert('This user has already sent you a friend request! Check your friend requests.');
                     return;
                 }
 
@@ -734,32 +753,45 @@
                 document.getElementById('friendSearch').value = '';
 
             } catch (error) {
+                console.error('Error searching user:', error);
                 alert('Error searching user: ' + error.message);
             }
         }
 
         async function sendFriendRequest(toUserId) {
-            const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
-            const currentUserData = currentUserDoc.data();
+            try {
+                const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+                const currentUserData = currentUserDoc.data();
 
-            // Add request to target user
-            await db.collection('users').doc(toUserId).update({
-                friendRequests: firebase.firestore.FieldValue.arrayUnion({
+                // Create the friend request object
+                const friendRequest = {
                     from: currentUser.uid,
                     status: 'pending',
-                    timestamp: new Date()
-                })
-            });
+                    timestamp: firebase.firestore.Timestamp.now(),
+                    fromName: currentUserData.name,
+                    fromUsername: currentUserData.username
+                };
 
-            // Add notification
-            await db.collection('notifications').add({
-                userId: toUserId,
-                type: 'friend_request',
-                content: `${currentUserData.name} sent you a friend request`,
-                from: currentUser.uid,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                read: false
-            });
+                // Add request to target user's friendRequests array
+                await db.collection('users').doc(toUserId).update({
+                    friendRequests: firebase.firestore.FieldValue.arrayUnion(friendRequest)
+                });
+
+                // Add notification
+                await db.collection('notifications').add({
+                    userId: toUserId,
+                    type: 'friend_request',
+                    content: `${currentUserData.name} (@${currentUserData.username}) sent you a friend request`,
+                    from: currentUser.uid,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    read: false
+                });
+
+                console.log('Friend request sent successfully');
+            } catch (error) {
+                console.error('Error sending friend request:', error);
+                throw error;
+            }
         }
 
         async function respondToFriendRequest(fromUserId, response) {
@@ -1128,5 +1160,5 @@
             }
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9683e3c2357e91df',t:'MTc1NDAzNjE0Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9683f204e4bf7f4e',t:'MTc1NDAzNjczMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
