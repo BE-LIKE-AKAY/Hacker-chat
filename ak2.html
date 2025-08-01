@@ -3,339 +3,699 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CyberChat - Advanced Chat App</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>HackerChat - Secure Communication Hub</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
-        
         * {
-            font-family: 'Orbitron', monospace;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
-        .cyber-bg {
+
+        body {
+            font-family: 'Courier New', monospace;
             background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #00ff41;
             min-height: 100vh;
+            overflow-x: hidden;
         }
-        
-        .neon-border {
-            border: 2px solid #00ffff;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-        }
-        
-        .neon-text {
-            color: #00ffff;
-            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
-        }
-        
-        .cyber-button {
-            background: linear-gradient(45deg, #ff006e, #8338ec);
-            border: none;
-            color: white;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .cyber-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(255, 0, 110, 0.4);
-        }
-        
-        .cyber-button::before {
-            content: '';
-            position: absolute;
+
+        .matrix-bg {
+            position: fixed;
             top: 0;
-            left: -100%;
+            left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
+            z-index: -1;
+            opacity: 0.1;
         }
-        
-        .cyber-button:hover::before {
-            left: 100%;
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
         }
-        
-        .message-bubble {
-            background: rgba(0, 255, 255, 0.1);
-            border: 1px solid rgba(0, 255, 255, 0.3);
+
+        .auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .auth-box {
+            background: rgba(0, 255, 65, 0.1);
+            border: 2px solid #00ff41;
+            border-radius: 10px;
+            padding: 40px;
             backdrop-filter: blur(10px);
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.3);
+            animation: glow 2s ease-in-out infinite alternate;
         }
-        
+
+        @keyframes glow {
+            from { box-shadow: 0 0 30px rgba(0, 255, 65, 0.3); }
+            to { box-shadow: 0 0 50px rgba(0, 255, 65, 0.6); }
+        }
+
+        .logo {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px #00ff41;
+            animation: flicker 3s infinite;
+        }
+
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00ff41;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #00ff41;
+            border-radius: 5px;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #00ff41, #00cc33);
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 65, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #00ff41;
+            border: 1px solid #00ff41;
+        }
+
+        .main-app {
+            display: none;
+            grid-template-columns: 300px 1fr 300px;
+            height: 100vh;
+            gap: 20px;
+        }
+
+        .sidebar {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff41;
+            border-radius: 10px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .chat-area {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff41;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid #00ff41;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(100vh - 200px);
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 10px;
+            position: relative;
+            animation: messageSlide 0.3s ease-in;
+        }
+
+        @keyframes messageSlide {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .message.own {
+            background: rgba(0, 255, 65, 0.2);
+            margin-left: 50px;
+            text-align: right;
+        }
+
+        .message.other {
+            background: rgba(255, 255, 255, 0.1);
+            margin-right: 50px;
+        }
+
+        .message-header {
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-bottom: 5px;
+        }
+
+        .message-content {
+            margin-bottom: 5px;
+        }
+
+        .message-reactions {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .reaction {
+            background: rgba(0, 255, 65, 0.3);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            cursor: pointer;
+        }
+
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid #00ff41;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #00ff41;
+            border-radius: 5px;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+        }
+
+        .room-item, .friend-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .room-item:hover, .friend-item:hover {
+            background: rgba(0, 255, 65, 0.2);
+            transform: translateX(5px);
+        }
+
         .online-indicator {
-            width: 12px;
-            height: 12px;
-            background: #00ff00;
+            width: 10px;
+            height: 10px;
+            background: #00ff41;
             border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
             animation: pulse 2s infinite;
         }
-        
+
         @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
-        
-        .typing-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
+
+        .offline-indicator {
+            width: 10px;
+            height: 10px;
+            background: #666;
             border-radius: 50%;
-            background: #00ffff;
-            animation: typing 1.4s infinite ease-in-out;
+            display: inline-block;
+            margin-right: 10px;
         }
-        
-        .typing-indicator:nth-child(1) { animation-delay: -0.32s; }
-        .typing-indicator:nth-child(2) { animation-delay: -0.16s; }
-        
-        @keyframes typing {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
         }
-        
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ff41;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
         }
-        
-        .reaction-btn {
-            transition: all 0.2s ease;
+
+        .tab-container {
+            display: flex;
+            margin-bottom: 20px;
         }
-        
-        .reaction-btn:hover {
-            transform: scale(1.3);
+
+        .tab {
+            padding: 10px 20px;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
-        
-        .notification-badge {
-            background: linear-gradient(45deg, #ff006e, #ff4081);
-            animation: bounce 1s infinite;
+
+        .tab.active {
+            background: rgba(0, 255, 65, 0.3);
         }
-        
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-10px); }
-            60% { transform: translateY(-5px); }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 255, 65, 0.9);
+            color: #000;
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 1001;
+            animation: slideIn 0.3s ease-in;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #00ff41;
+            object-fit: cover;
+        }
+
+        .emoji-picker {
+            display: none;
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #00ff41;
+            border-radius: 5px;
+            padding: 10px;
+            z-index: 100;
+        }
+
+        .emoji {
+            cursor: pointer;
+            padding: 5px;
+            font-size: 1.2em;
+        }
+
+        .emoji:hover {
+            background: rgba(0, 255, 65, 0.3);
+        }
+
+        .typing-indicator {
+            font-style: italic;
+            opacity: 0.7;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 0.7; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        .room-stats {
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .friend-request {
+            background: rgba(255, 165, 0, 0.2);
+            border: 1px solid #ffa500;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .search-container {
+            margin-bottom: 20px;
+        }
+
+        .search-container input {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #00ff41;
+            border-radius: 5px;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+        }
+
+        .user-search-result {
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .message-status {
+            font-size: 0.7em;
+            opacity: 0.6;
+            margin-top: 2px;
+        }
+
+        .delivered { color: #00ff41; }
+        .seen { color: #0099ff; }
+
+        @media (max-width: 768px) {
+            .main-app {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr auto;
+            }
+            
+            .sidebar {
+                height: auto;
+                max-height: 200px;
+            }
         }
     </style>
 </head>
-<body class="cyber-bg text-white">
-    <!-- Loading Screen -->
-    <div id="loadingScreen" class="fixed inset-0 bg-black flex items-center justify-center z-50">
-        <div class="text-center">
-            <div class="neon-text text-4xl font-bold mb-4 animate__animated animate__pulse animate__infinite">
-                CYBERCHAT
-            </div>
-            <div class="flex space-x-2">
-                <div class="typing-indicator"></div>
-                <div class="typing-indicator"></div>
-                <div class="typing-indicator"></div>
-            </div>
-        </div>
-    </div>
+<body>
+    <canvas class="matrix-bg" id="matrix"></canvas>
 
-    <!-- Authentication Screen -->
-    <div id="authScreen" class="hidden fixed inset-0 min-h-screen flex items-center justify-center p-4 z-50 cyber-bg">
-        <div class="glass-panel rounded-lg p-8 w-full max-w-md animate__animated animate__fadeInUp">
-            <h1 class="neon-text text-3xl font-bold text-center mb-8">CYBERCHAT</h1>
+    <!-- Authentication Section -->
+    <div id="authSection" class="auth-container">
+        <div class="auth-box">
+            <div class="logo">🔒 HACKERCHAT</div>
             
+            <div class="tab-container">
+                <div class="tab active" onclick="switchAuthTab('signin')">SIGN IN</div>
+                <div class="tab" onclick="switchAuthTab('signup')">SIGN UP</div>
+                <div class="tab" onclick="switchAuthTab('forgot')">FORGOT</div>
+            </div>
+
             <!-- Sign In Form -->
-            <div id="signInForm">
-                <h2 class="text-xl mb-6 text-center">Access Terminal</h2>
-                <div class="space-y-4">
-                    <input type="email" id="signInEmail" placeholder="Email Address" 
-                           class="w-full p-3 bg-transparent neon-border rounded focus:outline-none focus:shadow-lg">
-                    <input type="password" id="signInPassword" placeholder="Password" 
-                           class="w-full p-3 bg-transparent neon-border rounded focus:outline-none focus:shadow-lg">
-                    <button onclick="signIn()" class="cyber-button w-full p-3 rounded font-bold">
-                        CONNECT
-                    </button>
+            <div id="signinForm" class="tab-content active">
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="signinEmail" placeholder="Enter your email">
                 </div>
-                <div class="text-center mt-4 space-y-2">
-                    <button onclick="showSignUp()" class="text-cyan-400 hover:text-cyan-300">Create New Account</button>
-                    <br>
-                    <button onclick="resetPassword()" class="text-gray-400 hover:text-gray-300 text-sm">Forgot Password?</button>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="signinPassword" placeholder="Enter your password">
                 </div>
+                <button class="btn" onclick="signIn()">ACCESS GRANTED</button>
             </div>
 
             <!-- Sign Up Form -->
-            <div id="signUpForm" class="hidden">
-                <h2 class="text-xl mb-6 text-center">Initialize User</h2>
-                <div class="space-y-4">
-                    <input type="text" id="signUpUsername" placeholder="Username (unique)" 
-                           class="w-full p-3 bg-transparent neon-border rounded focus:outline-none focus:shadow-lg">
-                    <input type="email" id="signUpEmail" placeholder="Email Address" 
-                           class="w-full p-3 bg-transparent neon-border rounded focus:outline-none focus:shadow-lg">
-                    <input type="password" id="signUpPassword" placeholder="Password" 
-                           class="w-full p-3 bg-transparent neon-border rounded focus:outline-none focus:shadow-lg">
-                    <input type="text" id="signUpName" placeholder="Display Name" 
-                           class="w-full p-3 bg-transparent neon-border rounded focus:outline-none focus:shadow-lg">
-                    <input type="number" id="signUpAge" placeholder="Age" 
-                           class="w-full p-3 bg-transparent neon-border rounded focus:outline-none focus:shadow-lg">
-                    <select id="signUpGender" class="w-full p-3 bg-gray-800 neon-border rounded focus:outline-none focus:shadow-lg">
+            <div id="signupForm" class="tab-content">
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" id="signupUsername" placeholder="Choose a unique username">
+                </div>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="signupEmail" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="signupPassword" placeholder="Create a strong password">
+                </div>
+                <div class="form-group">
+                    <label>Age:</label>
+                    <input type="number" id="signupAge" placeholder="Enter your age" min="13">
+                </div>
+                <div class="form-group">
+                    <label>Gender:</label>
+                    <select id="signupGender">
                         <option value="">Select Gender</option>
                         <option value="male">Male</option>
                         <option value="female">Female</option>
                         <option value="other">Other</option>
                     </select>
-                    <button onclick="signUp()" class="cyber-button w-full p-3 rounded font-bold">
-                        INITIALIZE
-                    </button>
                 </div>
-                <div class="text-center mt-4">
-                    <button onclick="showSignIn()" class="text-cyan-400 hover:text-cyan-300">Back to Sign In</button>
+                <button class="btn" onclick="signUp()">CREATE ACCOUNT</button>
+            </div>
+
+            <!-- Forgot Password Form -->
+            <div id="forgotForm" class="tab-content">
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="forgotEmail" placeholder="Enter your email">
                 </div>
+                <button class="btn" onclick="resetPassword()">RESET PASSWORD</button>
             </div>
         </div>
     </div>
 
-    <!-- Main App -->
-    <div id="mainApp" class="hidden fixed inset-0 cyber-bg">
-        <!-- Header -->
-        <header class="glass-panel p-4 flex justify-between items-center">
-            <div class="flex items-center space-x-4">
-                <h1 class="neon-text text-2xl font-bold">CYBERCHAT</h1>
-                <div class="flex items-center space-x-2">
-                    <div class="online-indicator"></div>
-                    <span class="text-sm">Online</span>
-                </div>
-            </div>
-            <div class="flex items-center space-x-4">
-                <div class="relative">
-                    <button onclick="toggleNotifications()" class="cyber-button p-2 rounded">
-                        🔔
-                        <span id="notificationBadge" class="hidden notification-badge absolute -top-2 -right-2 text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
-                    </button>
-                </div>
-                <button onclick="showProfile()" class="cyber-button p-2 rounded">👤</button>
-                <button onclick="signOut()" class="cyber-button p-2 rounded">🚪</button>
-            </div>
-        </header>
-
-        <div class="flex h-screen">
-            <!-- Sidebar -->
-            <div class="w-80 glass-panel p-4 overflow-y-auto">
-                <!-- Navigation Tabs -->
-                <div class="flex mb-4">
-                    <button onclick="showTab('rooms')" id="roomsTab" class="cyber-button flex-1 p-2 rounded-l">Rooms</button>
-                    <button onclick="showTab('friends')" id="friendsTab" class="bg-gray-700 flex-1 p-2 rounded-r">Friends</button>
-                </div>
-
-                <!-- Rooms Tab -->
-                <div id="roomsContent">
-                    <div class="mb-4">
-                        <button onclick="showCreateRoom()" class="cyber-button w-full p-2 rounded mb-2">+ Create Room</button>
-                        <input type="text" id="roomSearch" placeholder="Search rooms..." 
-                               class="w-full p-2 bg-transparent neon-border rounded text-sm">
-                    </div>
-                    <div id="roomsList" class="space-y-2"></div>
-                </div>
-
-                <!-- Friends Tab -->
-                <div id="friendsContent" class="hidden">
-                    <div class="mb-4">
-                        <input type="text" id="friendSearch" placeholder="Search username..." 
-                               class="w-full p-2 bg-transparent neon-border rounded text-sm mb-2">
-                        <button onclick="searchUsers()" class="cyber-button w-full p-2 rounded">Search Users</button>
-                    </div>
-                    <div id="friendRequestsList" class="mb-4"></div>
-                    <div id="friendsList" class="space-y-2"></div>
-                </div>
+    <!-- Main Application -->
+    <div id="mainApp" class="main-app">
+        <!-- Left Sidebar -->
+        <div class="sidebar">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>🏠 CONTROL PANEL</h3>
+                <button class="btn btn-secondary" onclick="showProfile()">👤</button>
             </div>
 
-            <!-- Chat Area -->
-            <div class="flex-1 flex flex-col">
-                <!-- Chat Header -->
-                <div id="chatHeader" class="glass-panel p-4 flex justify-between items-center">
-                    <div>
-                        <h2 id="chatTitle" class="text-xl font-bold">Select a room or friend</h2>
-                        <div id="chatStatus" class="text-sm text-gray-400"></div>
-                    </div>
-                    <div id="chatActions" class="hidden space-x-2">
-                        <button onclick="showRoomInfo()" class="cyber-button p-2 rounded">ℹ️</button>
-                        <button onclick="inviteToRoom()" class="cyber-button p-2 rounded">➕</button>
-                    </div>
-                </div>
+            <div class="tab-container">
+                <div class="tab active" onclick="switchSidebarTab('rooms')">ROOMS</div>
+                <div class="tab" onclick="switchSidebarTab('friends')">FRIENDS</div>
+            </div>
 
-                <!-- Messages Area -->
-                <div id="messagesArea" class="flex-1 p-4 overflow-y-auto">
-                    <div class="text-center text-gray-400 mt-20">
-                        <div class="text-6xl mb-4">💬</div>
-                        <p>Select a chat room or friend to start messaging</p>
-                    </div>
-                </div>
+            <!-- Rooms Tab -->
+            <div id="roomsTab" class="tab-content active">
+                <button class="btn" onclick="showCreateRoom()" style="width: 100%; margin-bottom: 10px;">+ CREATE ROOM</button>
+                <button class="btn btn-secondary" onclick="showJoinRoom()" style="width: 100%; margin-bottom: 15px;">🔑 JOIN ROOM</button>
+                <div id="roomsList"></div>
+            </div>
 
-                <!-- Message Input -->
-                <div id="messageInput" class="hidden glass-panel p-4">
-                    <div class="flex space-x-2">
-                        <input type="text" id="messageText" placeholder="Type your message..." 
-                               class="flex-1 p-3 bg-transparent neon-border rounded focus:outline-none"
-                               onkeypress="handleMessageKeyPress(event)">
-                        <button onclick="sendMessage()" class="cyber-button p-3 rounded">Send</button>
-                    </div>
+            <!-- Friends Tab -->
+            <div id="friendsTab" class="tab-content">
+                <div class="search-container">
+                    <input type="text" id="userSearch" placeholder="Search users..." onkeyup="searchUsers()">
                 </div>
+                <div id="searchResults"></div>
+                <div id="friendRequests"></div>
+                <div id="friendsList"></div>
             </div>
         </div>
-    </div>
 
-    <!-- Modals -->
-    <!-- Create Room Modal -->
-    <div id="createRoomModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="glass-panel rounded-lg p-6 w-full max-w-md animate__animated animate__fadeInUp">
-            <h3 class="text-xl font-bold mb-4">Create New Room</h3>
-            <div class="space-y-4">
-                <input type="text" id="roomName" placeholder="Room Name" 
-                       class="w-full p-3 bg-transparent neon-border rounded focus:outline-none">
-                <div class="flex items-center space-x-2">
-                    <input type="checkbox" id="isPrivateRoom" class="w-4 h-4">
-                    <label for="isPrivateRoom">Private Room (invite only)</label>
+        <!-- Chat Area -->
+        <div class="chat-area">
+            <div class="chat-header">
+                <div>
+                    <h3 id="chatTitle">Select a room or friend to start chatting</h3>
+                    <div id="chatSubtitle" style="font-size: 0.8em; opacity: 0.7;"></div>
                 </div>
-                <div class="flex space-x-2">
-                    <button onclick="createRoom()" class="cyber-button flex-1 p-3 rounded">Create</button>
-                    <button onclick="hideCreateRoom()" class="bg-gray-600 flex-1 p-3 rounded">Cancel</button>
+                <div id="onlineUsers"></div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div style="text-align: center; opacity: 0.5; margin-top: 50px;">
+                    <h2>🔐 SECURE CHANNEL READY</h2>
+                    <p>Select a room or friend to begin encrypted communication</p>
                 </div>
             </div>
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="Type your encrypted message..." onkeypress="handleMessageKeyPress(event)">
+                <button class="btn" onclick="showEmojiPicker()">😀</button>
+                <button class="btn" onclick="sendMessage()">SEND</button>
+            </div>
+            <div class="emoji-picker" id="emojiPicker">
+                <div class="emoji" onclick="addEmoji('😀')">😀</div>
+                <div class="emoji" onclick="addEmoji('😂')">😂</div>
+                <div class="emoji" onclick="addEmoji('❤️')">❤️</div>
+                <div class="emoji" onclick="addEmoji('👍')">👍</div>
+                <div class="emoji" onclick="addEmoji('🔥')">🔥</div>
+                <div class="emoji" onclick="addEmoji('💯')">💯</div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="sidebar">
+            <h3>📊 SYSTEM STATUS</h3>
+            <div id="systemStats">
+                <div style="margin-bottom: 15px;">
+                    <strong>Online Users:</strong> <span id="onlineCount">0</span>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong>Active Rooms:</strong> <span id="activeRooms">0</span>
+                </div>
+            </div>
+            <div id="roomMembers"></div>
         </div>
     </div>
 
     <!-- Profile Modal -->
-    <div id="profileModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="glass-panel rounded-lg p-6 w-full max-w-md animate__animated animate__fadeInUp">
-            <h3 class="text-xl font-bold mb-4">Profile Settings</h3>
-            <div class="space-y-4">
-                <div class="text-center mb-4">
-                    <div class="w-20 h-20 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full mx-auto mb-2 flex items-center justify-center text-2xl">
-                        👤
-                    </div>
-                    <button onclick="updateProfilePic()" class="text-cyan-400 text-sm">Change Picture</button>
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>👤 USER PROFILE</h3>
+                <button class="btn btn-secondary" onclick="closeModal('profileModal')">✕</button>
+            </div>
+            
+            <div class="tab-container">
+                <div class="tab active" onclick="switchProfileTab('details')">DETAILS</div>
+                <div class="tab" onclick="switchProfileTab('activity')">ACTIVITY</div>
+                <div class="tab" onclick="switchProfileTab('settings')">SETTINGS</div>
+            </div>
+
+            <!-- Profile Details -->
+            <div id="profileDetails" class="tab-content active">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img id="profileImage" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100' height='100' fill='%2300ff41'/><text x='50' y='55' text-anchor='middle' fill='%23000' font-size='40'>👤</text></svg>" class="profile-pic" style="width: 80px; height: 80px;">
+                    <br><br>
+                    <input type="file" id="profilePicInput" accept="image/*" onchange="updateProfilePicture()" style="display: none;">
+                    <button class="btn btn-secondary" onclick="document.getElementById('profilePicInput').click()">UPDATE PHOTO</button>
                 </div>
-                <input type="text" id="profileName" placeholder="Display Name" 
-                       class="w-full p-3 bg-transparent neon-border rounded focus:outline-none">
-                <input type="number" id="profileAge" placeholder="Age" 
-                       class="w-full p-3 bg-transparent neon-border rounded focus:outline-none">
-                <select id="profileGender" class="w-full p-3 bg-gray-800 neon-border rounded focus:outline-none">
-                    <option value="">Select Gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                </select>
-                <div class="flex space-x-2">
-                    <button onclick="updateProfile()" class="cyber-button flex-1 p-3 rounded">Update</button>
-                    <button onclick="hideProfile()" class="bg-gray-600 flex-1 p-3 rounded">Cancel</button>
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" id="profileUsername" readonly>
                 </div>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="profileEmail" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Age:</label>
+                    <input type="number" id="profileAge">
+                </div>
+                <div class="form-group">
+                    <label>Gender:</label>
+                    <select id="profileGender">
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="updateProfile()">UPDATE PROFILE</button>
+            </div>
+
+            <!-- Room Activity -->
+            <div id="profileActivity" class="tab-content">
+                <h4>📈 MY ROOM ACTIVITY</h4>
+                <div id="roomActivity"></div>
+            </div>
+
+            <!-- Settings -->
+            <div id="profileSettings" class="tab-content">
+                <button class="btn" onclick="signOut()" style="background: #ff4444;">LOGOUT</button>
             </div>
         </div>
     </div>
 
-    <!-- Notifications Panel -->
-    <div id="notificationsPanel" class="hidden fixed top-16 right-4 w-80 glass-panel rounded-lg p-4 z-40 max-h-96 overflow-y-auto">
-        <h3 class="text-lg font-bold mb-4">Notifications</h3>
-        <div id="notificationsList"></div>
+    <!-- Create Room Modal -->
+    <div id="createRoomModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>🏠 CREATE ROOM</h3>
+                <button class="btn btn-secondary" onclick="closeModal('createRoomModal')">✕</button>
+            </div>
+            <div class="form-group">
+                <label>Room Name:</label>
+                <input type="text" id="roomName" placeholder="Enter room name">
+            </div>
+            <div class="form-group">
+                <label>Room Description:</label>
+                <input type="text" id="roomDescription" placeholder="Enter room description">
+            </div>
+            <div class="form-group">
+                <label>Room Type:</label>
+                <select id="roomType">
+                    <option value="public">Public</option>
+                    <option value="private">Private (Invite Only)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Room Code (Optional - for private rooms):</label>
+                <input type="text" id="roomCode" placeholder="Enter custom room code or leave blank for auto-generated">
+            </div>
+            <button class="btn" onclick="createRoom()">CREATE ROOM</button>
+        </div>
+    </div>
+
+    <!-- Join Room Modal -->
+    <div id="joinRoomModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>🔑 JOIN ROOM</h3>
+                <button class="btn btn-secondary" onclick="closeModal('joinRoomModal')">✕</button>
+            </div>
+            <div class="form-group">
+                <label>Room Code:</label>
+                <input type="text" id="joinRoomCode" placeholder="Enter room code">
+            </div>
+            <button class="btn" onclick="joinRoomByCode()">JOIN ROOM</button>
+        </div>
+    </div>
+
+    <!-- Share Room Modal -->
+    <div id="shareRoomModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>📤 SHARE ROOM</h3>
+                <button class="btn btn-secondary" onclick="closeModal('shareRoomModal')">✕</button>
+            </div>
+            <div class="form-group">
+                <label>Room Code:</label>
+                <input type="text" id="shareRoomCode" readonly style="background: rgba(0,255,65,0.1);">
+                <button class="btn btn-secondary" onclick="copyRoomCode()" style="margin-top: 10px; width: 100%;">📋 COPY CODE</button>
+            </div>
+            <div class="form-group">
+                <label>Invite by Username:</label>
+                <input type="text" id="inviteUsername" placeholder="Enter username to invite">
+                <button class="btn" onclick="inviteUserToRoom()" style="margin-top: 10px; width: 100%;">📨 SEND INVITE</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -351,670 +711,517 @@
             measurementId: "G-4C479V87YN"
         };
 
+        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
-        const db = firebase.firestore();
+        const database = firebase.database();
         const storage = firebase.storage();
 
-        // Global variables
+        // Global Variables
         let currentUser = null;
-        let currentChat = null;
-        let currentChatType = null; // 'room' or 'friend'
-        let messagesListener = null;
+        let currentRoom = null;
+        let currentFriend = null;
+        let typingTimeout = null;
 
-        // Initialize app
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(() => {
-                document.getElementById('loadingScreen').classList.add('hidden');
-                document.getElementById('authScreen').classList.remove('hidden');
-            }, 2000);
-
-            auth.onAuthStateChanged(user => {
-                if (user) {
-                    currentUser = user;
-                    loadMainApp();
-                } else {
-                    showAuthScreen();
+        // Matrix Background Animation
+        function initMatrix() {
+            const canvas = document.getElementById('matrix');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+            const charArray = chars.split('');
+            const fontSize = 14;
+            const columns = canvas.width / fontSize;
+            const drops = [];
+            
+            for (let i = 0; i < columns; i++) {
+                drops[i] = 1;
+            }
+            
+            function draw() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#00ff41';
+                ctx.font = fontSize + 'px monospace';
+                
+                for (let i = 0; i < drops.length; i++) {
+                    const text = charArray[Math.floor(Math.random() * charArray.length)];
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                    
+                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    drops[i]++;
                 }
-            });
-        });
-
-        // Authentication Functions
-        function showSignUp() {
-            document.getElementById('signInForm').classList.add('hidden');
-            document.getElementById('signUpForm').classList.remove('hidden');
+            }
+            
+            setInterval(draw, 35);
         }
 
-        function showSignIn() {
-            document.getElementById('signUpForm').classList.add('hidden');
-            document.getElementById('signInForm').classList.remove('hidden');
+        // Authentication Functions
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab + 'Form').classList.add('active');
         }
 
         async function signUp() {
-            const username = document.getElementById('signUpUsername').value;
-            const email = document.getElementById('signUpEmail').value;
-            const password = document.getElementById('signUpPassword').value;
-            const name = document.getElementById('signUpName').value;
-            const age = document.getElementById('signUpAge').value;
-            const gender = document.getElementById('signUpGender').value;
+            const username = document.getElementById('signupUsername').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const age = document.getElementById('signupAge').value;
+            const gender = document.getElementById('signupGender').value;
 
-            if (!username || !email || !password || !name) {
-                alert('Please fill in all required fields');
+            if (!username || !email || !password || !age || !gender) {
+                showNotification('Please fill all fields', 'error');
                 return;
             }
 
             try {
-                // Check if username is unique
-                const usernameCheck = await db.collection('users').where('username', '==', username).get();
-                if (!usernameCheck.empty) {
-                    alert('Username already exists. Please choose another.');
+                // Check if username exists
+                const usernameSnapshot = await database.ref('usernames/' + username).once('value');
+                if (usernameSnapshot.exists()) {
+                    showNotification('Username already taken', 'error');
                     return;
                 }
 
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
-                // Create user document
-                await db.collection('users').doc(user.uid).set({
+                // Save user data
+                await database.ref('users/' + user.uid).set({
                     username: username,
                     email: email,
-                    name: name,
-                    age: parseInt(age) || null,
-                    gender: gender || null,
-                    profilePic: null,
-                    friends: [],
-                    friendRequests: [],
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                    isOnline: true
+                    age: parseInt(age),
+                    gender: gender,
+                    createdAt: firebase.database.ServerValue.TIMESTAMP,
+                    lastSeen: firebase.database.ServerValue.TIMESTAMP,
+                    online: true,
+                    profilePicture: null
                 });
 
-                alert('Account created successfully!');
+                // Reserve username
+                await database.ref('usernames/' + username).set(user.uid);
+
+                showNotification('Account created successfully!', 'success');
             } catch (error) {
-                alert('Error: ' + error.message);
+                showNotification(error.message, 'error');
             }
         }
 
         async function signIn() {
-            const email = document.getElementById('signInEmail').value;
-            const password = document.getElementById('signInPassword').value;
+            const email = document.getElementById('signinEmail').value;
+            const password = document.getElementById('signinPassword').value;
 
             if (!email || !password) {
-                alert('Please enter email and password');
+                showNotification('Please fill all fields', 'error');
                 return;
             }
 
             try {
                 await auth.signInWithEmailAndPassword(email, password);
+                showNotification('Welcome back, hacker!', 'success');
             } catch (error) {
-                alert('Error: ' + error.message);
+                showNotification(error.message, 'error');
             }
         }
 
         async function resetPassword() {
-            const email = prompt('Enter your email address:');
-            if (email) {
-                try {
-                    await auth.sendPasswordResetEmail(email);
-                    alert('Password reset email sent!');
-                } catch (error) {
-                    alert('Error: ' + error.message);
-                }
+            const email = document.getElementById('forgotEmail').value;
+
+            if (!email) {
+                showNotification('Please enter your email', 'error');
+                return;
+            }
+
+            try {
+                await auth.sendPasswordResetEmail(email);
+                showNotification('Password reset email sent!', 'success');
+            } catch (error) {
+                showNotification(error.message, 'error');
             }
         }
 
-        async function signOut() {
+        function signOut() {
             if (currentUser) {
-                await db.collection('users').doc(currentUser.uid).update({
-                    isOnline: false,
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                database.ref('users/' + currentUser.uid).update({
+                    online: false,
+                    lastSeen: firebase.database.ServerValue.TIMESTAMP
                 });
             }
-            await auth.signOut();
+            auth.signOut();
         }
 
-        function showAuthScreen() {
-            document.getElementById('mainApp').classList.add('hidden');
-            document.getElementById('authScreen').classList.remove('hidden');
+        // Main App Functions
+        function switchSidebarTab(tab) {
+            document.querySelectorAll('#mainApp .tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#mainApp .tab-content').forEach(t => t.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab + 'Tab').classList.add('active');
         }
 
-        async function loadMainApp() {
-            document.getElementById('authScreen').classList.add('hidden');
-            document.getElementById('mainApp').classList.remove('hidden');
-
-            // Update user online status
-            await db.collection('users').doc(currentUser.uid).update({
-                isOnline: true,
-                lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            loadRooms();
-            loadFriends();
-            loadNotifications();
-        }
-
-        // Tab Functions
-        function showTab(tab) {
-            if (tab === 'rooms') {
-                document.getElementById('roomsContent').classList.remove('hidden');
-                document.getElementById('friendsContent').classList.add('hidden');
-                document.getElementById('roomsTab').className = 'cyber-button flex-1 p-2 rounded-l';
-                document.getElementById('friendsTab').className = 'bg-gray-700 flex-1 p-2 rounded-r';
-            } else {
-                document.getElementById('friendsContent').classList.remove('hidden');
-                document.getElementById('roomsContent').classList.add('hidden');
-                document.getElementById('friendsTab').className = 'cyber-button flex-1 p-2 rounded-r';
-                document.getElementById('roomsTab').className = 'bg-gray-700 flex-1 p-2 rounded-l';
-            }
+        function switchProfileTab(tab) {
+            document.querySelectorAll('#profileModal .tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#profileModal .tab-content').forEach(t => t.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById('profile' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
         }
 
         // Room Functions
-        async function loadRooms() {
-            const roomsList = document.getElementById('roomsList');
-            
-            db.collection('chatrooms')
-                .where('invitedUsers', 'array-contains', currentUser.uid)
-                .onSnapshot(snapshot => {
-                    roomsList.innerHTML = '';
-                    snapshot.forEach(doc => {
-                        const room = doc.data();
-                        const roomElement = createRoomElement(doc.id, room);
-                        roomsList.appendChild(roomElement);
-                    });
-                });
-        }
-
-        function createRoomElement(roomId, room) {
-            const div = document.createElement('div');
-            div.className = 'glass-panel p-3 rounded cursor-pointer hover:bg-opacity-20 transition-all';
-            div.onclick = () => openChat(roomId, 'room');
-            
-            div.innerHTML = `
-                <div class="flex justify-between items-center">
-                    <div>
-                        <div class="font-bold">${room.name}</div>
-                        <div class="text-sm text-gray-400">${room.isPrivate ? '🔒 Private' : '🌐 Public'}</div>
-                    </div>
-                    <div class="text-xs text-gray-500">
-                        ${room.lastMessage ? new Date(room.lastMessage.timestamp?.toDate()).toLocaleTimeString() : ''}
-                    </div>
-                </div>
-            `;
-            
-            return div;
-        }
-
         function showCreateRoom() {
-            document.getElementById('createRoomModal').classList.remove('hidden');
-        }
-
-        function hideCreateRoom() {
-            document.getElementById('createRoomModal').classList.add('hidden');
-            document.getElementById('roomName').value = '';
-            document.getElementById('isPrivateRoom').checked = false;
+            document.getElementById('createRoomModal').style.display = 'block';
         }
 
         async function createRoom() {
-            const roomName = document.getElementById('roomName').value;
-            const isPrivate = document.getElementById('isPrivateRoom').checked;
+            const name = document.getElementById('roomName').value;
+            const description = document.getElementById('roomDescription').value;
+            const type = document.getElementById('roomType').value;
+            const customCode = document.getElementById('roomCode').value.trim();
 
-            if (!roomName) {
-                alert('Please enter a room name');
+            if (!name) {
+                showNotification('Please enter room name', 'error');
+                return;
+            }
+
+            if (!currentUser) {
+                showNotification('Please sign in first', 'error');
                 return;
             }
 
             try {
-                await db.collection('chatrooms').add({
-                    name: roomName,
-                    isPrivate: isPrivate,
-                    createdBy: currentUser.uid,
-                    invitedUsers: [currentUser.uid],
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastMessage: null
-                });
-
-                hideCreateRoom();
-                alert('Room created successfully!');
-            } catch (error) {
-                alert('Error creating room: ' + error.message);
-            }
-        }
-
-        // Friend Functions
-        async function loadFriends() {
-            const friendsList = document.getElementById('friendsList');
-            const friendRequestsList = document.getElementById('friendRequestsList');
-            
-            // Load friend requests
-            db.collection('users').doc(currentUser.uid)
-                .onSnapshot(doc => {
-                    if (doc.exists) {
-                        const userData = doc.data();
-                        displayFriendRequests(userData.friendRequests || []);
-                        displayFriends(userData.friends || []);
+                // Generate room code
+                let roomCode;
+                if (customCode) {
+                    // Check if custom code already exists
+                    const codeCheck = await database.ref('roomCodes/' + customCode).once('value');
+                    if (codeCheck.exists()) {
+                        showNotification('Room code already exists. Please choose another.', 'error');
+                        return;
                     }
-                });
-        }
-
-        async function displayFriendRequests(requests) {
-            const container = document.getElementById('friendRequestsList');
-            container.innerHTML = '';
-
-            if (requests.length > 0) {
-                const title = document.createElement('h4');
-                title.className = 'text-sm font-bold mb-2 text-cyan-400';
-                title.textContent = 'Friend Requests';
-                container.appendChild(title);
-
-                for (const request of requests) {
-                    if (request.status === 'pending') {
-                        const userDoc = await db.collection('users').doc(request.from).get();
-                        if (userDoc.exists) {
-                            const user = userDoc.data();
-                            const requestElement = createFriendRequestElement(request.from, user);
-                            container.appendChild(requestElement);
-                        }
-                    }
+                    roomCode = customCode;
+                } else {
+                    // Generate random 6-character code
+                    roomCode = Math.random().toString(36).substr(2, 6).toUpperCase();
                 }
-            }
-        }
 
-        function createFriendRequestElement(userId, user) {
-            const div = document.createElement('div');
-            div.className = 'glass-panel p-3 rounded mb-2 animate__animated animate__fadeInUp';
-            
-            div.innerHTML = `
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full flex items-center justify-center">
-                            👤
-                        </div>
-                        <div>
-                            <div class="font-bold">${user.name}</div>
-                            <div class="text-sm text-gray-400">@${user.username}</div>
-                        </div>
-                    </div>
-                    <div class="space-x-2">
-                        <button onclick="respondToFriendRequest('${userId}', 'accepted')" 
-                                class="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-xs transition-colors">✓ Accept</button>
-                        <button onclick="respondToFriendRequest('${userId}', 'declined')" 
-                                class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs transition-colors">✗ Decline</button>
-                    </div>
-                </div>
-            `;
-            
-            return div;
-        }
-
-        async function displayFriends(friends) {
-            const container = document.getElementById('friendsList');
-            container.innerHTML = '';
-
-            if (friends.length > 0) {
-                const title = document.createElement('h4');
-                title.className = 'text-sm font-bold mb-2 text-cyan-400';
-                title.textContent = 'Friends';
-                container.appendChild(title);
-
-                for (const friendId of friends) {
-                    const userDoc = await db.collection('users').doc(friendId).get();
-                    if (userDoc.exists) {
-                        const user = userDoc.data();
-                        const friendElement = createFriendElement(friendId, user);
-                        container.appendChild(friendElement);
-                    }
-                }
-            }
-        }
-
-        function createFriendElement(userId, user) {
-            const div = document.createElement('div');
-            div.className = 'glass-panel p-3 rounded cursor-pointer hover:bg-opacity-20 transition-all mb-2';
-            div.onclick = () => openChat(userId, 'friend');
-            
-            div.innerHTML = `
-                <div class="flex items-center space-x-3">
-                    <div class="relative">
-                        <div class="w-10 h-10 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full flex items-center justify-center">
-                            👤
-                        </div>
-                        ${user.isOnline ? '<div class="online-indicator absolute -bottom-1 -right-1"></div>' : ''}
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold">${user.name}</div>
-                        <div class="text-sm text-gray-400">
-                            ${user.isOnline ? 'Online' : `Last seen ${user.lastSeen ? new Date(user.lastSeen.toDate()).toLocaleString() : 'Never'}`}
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            return div;
-        }
-
-        async function searchUsers() {
-            const username = document.getElementById('friendSearch').value.trim();
-            if (!username) {
-                alert('Please enter a username to search');
-                return;
-            }
-
-            try {
-                console.log('Searching for username:', username);
+                // Generate a unique room ID
+                const roomId = 'room_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 
-                const querySnapshot = await db.collection('users')
-                    .where('username', '==', username)
-                    .get();
-
-                console.log('Query result:', querySnapshot.size, 'documents found');
-
-                if (querySnapshot.empty) {
-                    alert('User not found');
-                    return;
-                }
-
-                const userDoc = querySnapshot.docs[0];
-                const userData = userDoc.data();
-                const userId = userDoc.id;
-
-                console.log('Found user:', userData.name, userId);
-
-                if (userId === currentUser.uid) {
-                    alert('You cannot add yourself as a friend');
-                    return;
-                }
-
-                // Check if already friends or request pending
-                const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
-                const currentUserData = currentUserDoc.data();
-
-                if (currentUserData.friends && currentUserData.friends.includes(userId)) {
-                    alert('You are already friends with this user');
-                    return;
-                }
-
-                // Check both directions for friend requests
-                const existingRequestToUser = userData.friendRequests?.find(req => req.from === currentUser.uid && req.status === 'pending');
-                const existingRequestFromUser = currentUserData.friendRequests?.find(req => req.from === userId && req.status === 'pending');
+                // Get current user data
+                const currentUserSnapshot = await database.ref('users/' + currentUser.uid).once('value');
+                const currentUserData = currentUserSnapshot.val();
                 
-                if (existingRequestToUser) {
-                    alert('Friend request already sent');
-                    return;
-                }
-
-                if (existingRequestFromUser) {
-                    alert('This user has already sent you a friend request! Check your friend requests.');
-                    return;
-                }
-
-                // Send friend request
-                await sendFriendRequest(userId);
-                alert(`Friend request sent to ${userData.name}!`);
-                document.getElementById('friendSearch').value = '';
-
-            } catch (error) {
-                console.error('Error searching user:', error);
-                alert('Error searching user: ' + error.message);
-            }
-        }
-
-        async function sendFriendRequest(toUserId) {
-            try {
-                const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
-                const currentUserData = currentUserDoc.data();
-
-                // Create the friend request object
-                const friendRequest = {
-                    from: currentUser.uid,
-                    status: 'pending',
-                    timestamp: firebase.firestore.Timestamp.now(),
-                    fromName: currentUserData.name,
-                    fromUsername: currentUserData.username
+                // Create room data
+                const roomData = {
+                    name: name,
+                    description: description || 'No description',
+                    type: type,
+                    creator: currentUser.uid,
+                    createdAt: Date.now(),
+                    roomCode: roomCode,
+                    members: {}
+                };
+                
+                // Add creator as first member
+                roomData.members[currentUser.uid] = {
+                    joinedAt: Date.now(),
+                    role: 'admin',
+                    username: currentUserData.username
                 };
 
-                // Add request to target user's friendRequests array
-                await db.collection('users').doc(toUserId).update({
-                    friendRequests: firebase.firestore.FieldValue.arrayUnion(friendRequest)
+                // Create the room
+                await database.ref('rooms/' + roomId).set(roomData);
+
+                // Map room code to room ID
+                await database.ref('roomCodes/' + roomCode).set(roomId);
+
+                // Add to user's rooms
+                await database.ref('userRooms/' + currentUser.uid + '/' + roomId).set({
+                    joinedAt: Date.now(),
+                    timeSpent: 0,
+                    roomName: name,
+                    roomCode: roomCode
                 });
 
-                // Add notification
-                await db.collection('notifications').add({
-                    userId: toUserId,
-                    type: 'friend_request',
-                    content: `${currentUserData.name} (@${currentUserData.username}) sent you a friend request`,
-                    from: currentUser.uid,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    read: false
-                });
+                // Clear form
+                document.getElementById('roomName').value = '';
+                document.getElementById('roomDescription').value = '';
+                document.getElementById('roomType').value = 'public';
+                document.getElementById('roomCode').value = '';
 
-                console.log('Friend request sent successfully');
+                closeModal('createRoomModal');
+                showNotification(`Room created! Code: ${roomCode}`, 'success');
+                loadRooms();
             } catch (error) {
-                console.error('Error sending friend request:', error);
-                throw error;
+                console.error('Room creation error:', error);
+                showNotification('Failed to create room: ' + error.message, 'error');
             }
         }
 
-        async function respondToFriendRequest(fromUserId, response) {
-            try {
-                const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
-                const currentUserData = currentUserDoc.data();
+        async function loadRooms() {
+            if (!currentUser) return;
 
-                // Update the request status
-                const updatedRequests = currentUserData.friendRequests.map(req => {
-                    if (req.from === fromUserId) {
-                        return { ...req, status: response };
-                    }
-                    return req;
-                });
+            const userRoomsSnapshot = await database.ref('userRooms/' + currentUser.uid).once('value');
+            const userRooms = userRoomsSnapshot.val() || {};
 
-                await db.collection('users').doc(currentUser.uid).update({
-                    friendRequests: updatedRequests
-                });
+            const roomsList = document.getElementById('roomsList');
+            roomsList.innerHTML = '';
 
-                if (response === 'accepted') {
-                    // Add to friends list for both users
-                    await db.collection('users').doc(currentUser.uid).update({
-                        friends: firebase.firestore.FieldValue.arrayUnion(fromUserId)
-                    });
-
-                    await db.collection('users').doc(fromUserId).update({
-                        friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
-                    });
-                }
-
-                // Send notification
-                const fromUserDoc = await db.collection('users').doc(fromUserId).get();
-                const responseText = response === 'accepted' ? 'accepted' : 'declined';
+            for (const roomId in userRooms) {
+                const roomSnapshot = await database.ref('rooms/' + roomId).once('value');
+                const room = roomSnapshot.val();
                 
-                await db.collection('notifications').add({
-                    userId: fromUserId,
-                    type: 'friend_response',
-                    content: `${currentUserData.name} ${responseText} your friend request`,
-                    from: currentUser.uid,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    read: false
-                });
-
-                alert(`Friend request ${responseText}!`);
-
-            } catch (error) {
-                alert('Error responding to friend request: ' + error.message);
-            }
-        }
-
-        // Chat Functions
-        async function openChat(chatId, chatType) {
-            currentChat = chatId;
-            currentChatType = chatType;
-
-            // Clear previous messages listener
-            if (messagesListener) {
-                messagesListener();
-            }
-
-            // Update UI
-            document.getElementById('messageInput').classList.remove('hidden');
-            document.getElementById('chatActions').classList.remove('hidden');
-
-            if (chatType === 'room') {
-                const roomDoc = await db.collection('chatrooms').doc(chatId).get();
-                const roomData = roomDoc.data();
-                document.getElementById('chatTitle').textContent = roomData.name;
-                document.getElementById('chatStatus').textContent = roomData.isPrivate ? 'Private Room' : 'Public Room';
-                
-                loadRoomMessages(chatId);
-            } else {
-                const userDoc = await db.collection('users').doc(chatId).get();
-                const userData = userDoc.data();
-                document.getElementById('chatTitle').textContent = userData.name;
-                document.getElementById('chatStatus').textContent = userData.isOnline ? 'Online' : `Last seen ${userData.lastSeen ? new Date(userData.lastSeen.toDate()).toLocaleString() : 'Never'}`;
-                
-                loadDirectMessages(chatId);
-            }
-        }
-
-        function loadRoomMessages(roomId) {
-            const messagesArea = document.getElementById('messagesArea');
-            
-            messagesListener = db.collection('chatrooms').doc(roomId).collection('messages')
-                .orderBy('timestamp', 'asc')
-                .onSnapshot(snapshot => {
-                    messagesArea.innerHTML = '';
-                    snapshot.forEach(doc => {
-                        const message = doc.data();
-                        const messageElement = createMessageElement(doc.id, message);
-                        messagesArea.appendChild(messageElement);
-                    });
-                    messagesArea.scrollTop = messagesArea.scrollHeight;
-                });
-        }
-
-        function loadDirectMessages(friendId) {
-            const messagesArea = document.getElementById('messagesArea');
-            const chatId = [currentUser.uid, friendId].sort().join('_');
-            
-            messagesListener = db.collection('directMessages').doc(chatId).collection('messages')
-                .orderBy('timestamp', 'asc')
-                .onSnapshot(snapshot => {
-                    messagesArea.innerHTML = '';
-                    snapshot.forEach(doc => {
-                        const message = doc.data();
-                        const messageElement = createMessageElement(doc.id, message);
-                        messagesArea.appendChild(messageElement);
-                    });
-                    messagesArea.scrollTop = messagesArea.scrollHeight;
-                });
-        }
-
-        function createMessageElement(messageId, message) {
-            const div = document.createElement('div');
-            const isOwnMessage = message.sender === currentUser.uid;
-            
-            div.className = `mb-4 ${isOwnMessage ? 'text-right' : 'text-left'}`;
-            
-            const timestamp = message.timestamp ? new Date(message.timestamp.toDate()).toLocaleTimeString() : '';
-            const seenCount = message.seenBy ? message.seenBy.length : 0;
-            
-            div.innerHTML = `
-                <div class="inline-block max-w-xs lg:max-w-md">
-                    ${!isOwnMessage ? `<div class="text-xs text-gray-400 mb-1">${message.senderName || 'Unknown'}</div>` : ''}
-                    <div class="message-bubble p-3 rounded-lg ${isOwnMessage ? 'bg-gradient-to-r from-purple-600 to-pink-600' : 'bg-gray-700'}">
-                        <div class="text-white">${message.content}</div>
-                        <div class="flex justify-between items-center mt-2">
-                            <div class="flex space-x-1">
-                                ${createReactionButtons(messageId, message.reactions || {})}
-                            </div>
-                            <div class="text-xs text-gray-300">
-                                ${timestamp}
-                                ${isOwnMessage ? `<span class="ml-2">${seenCount > 1 ? '✓✓' : '✓'}</span>` : ''}
+                if (room) {
+                    const roomElement = document.createElement('div');
+                    roomElement.className = 'room-item';
+                    
+                    const memberCount = Object.keys(room.members || {}).length;
+                    const joinDate = new Date(userRooms[roomId].joinedAt).toLocaleDateString();
+                    const isCreator = room.creator === currentUser.uid;
+                    
+                    roomElement.innerHTML = `
+                        <div onclick="joinRoom('${roomId}')" style="cursor: pointer;">
+                            <div><strong>🏠 ${room.name}</strong> ${room.type === 'private' ? '🔒' : '🌐'}</div>
+                            <div style="font-size: 0.8em; opacity: 0.7;">${room.description || 'No description'}</div>
+                            <div class="room-stats">
+                                👥 ${memberCount} members | 📅 Joined: ${joinDate}
+                                ${room.roomCode ? `| 🔑 Code: ${room.roomCode}` : ''}
                             </div>
                         </div>
-                        ${Object.keys(message.reactions || {}).length > 0 ? createReactionDisplay(message.reactions) : ''}
-                    </div>
-                </div>
-            `;
-            
-            return div;
+                        ${isCreator ? `<div style="margin-top: 8px;">
+                            <button class="btn btn-secondary" onclick="shareRoom('${roomId}', '${room.roomCode}')" style="font-size: 0.7em; padding: 4px 8px;">📤 Share</button>
+                        </div>` : ''}
+                    `;
+                    
+                    roomsList.appendChild(roomElement);
+                }
+            }
         }
 
-        function createReactionButtons(messageId, reactions) {
-            const emojis = ['❤️', '😂', '😮', '😢', '😡', '👍'];
-            return emojis.map(emoji => 
-                `<button onclick="toggleReaction('${messageId}', '${emoji}')" 
-                         class="reaction-btn text-sm hover:scale-125 transition-transform">
-                    ${emoji}
-                </button>`
-            ).join('');
+        function showJoinRoom() {
+            document.getElementById('joinRoomModal').style.display = 'block';
         }
 
-        function createReactionDisplay(reactions) {
-            const reactionCounts = Object.entries(reactions)
-                .filter(([emoji, users]) => users.length > 0)
-                .map(([emoji, users]) => `<span class="text-xs bg-gray-600 px-2 py-1 rounded mr-1">${emoji} ${users.length}</span>`)
-                .join('');
+        async function joinRoomByCode() {
+            const roomCode = document.getElementById('joinRoomCode').value.trim().toUpperCase();
             
-            return reactionCounts ? `<div class="mt-2">${reactionCounts}</div>` : '';
-        }
-
-        async function toggleReaction(messageId, emoji) {
-            const collection = currentChatType === 'room' ? 
-                db.collection('chatrooms').doc(currentChat).collection('messages') :
-                db.collection('directMessages').doc([currentUser.uid, currentChat].sort().join('_')).collection('messages');
-
-            const messageDoc = await collection.doc(messageId).get();
-            const messageData = messageDoc.data();
-            const reactions = messageData.reactions || {};
-            
-            if (!reactions[emoji]) {
-                reactions[emoji] = [];
+            if (!roomCode) {
+                showNotification('Please enter room code', 'error');
+                return;
             }
 
-            const userIndex = reactions[emoji].indexOf(currentUser.uid);
-            if (userIndex > -1) {
-                reactions[emoji].splice(userIndex, 1);
-            } else {
-                reactions[emoji].push(currentUser.uid);
+            try {
+                // Get room ID from code
+                const roomIdSnapshot = await database.ref('roomCodes/' + roomCode).once('value');
+                if (!roomIdSnapshot.exists()) {
+                    showNotification('Invalid room code', 'error');
+                    return;
+                }
+
+                const roomId = roomIdSnapshot.val();
+                const roomSnapshot = await database.ref('rooms/' + roomId).once('value');
+                const room = roomSnapshot.val();
+
+                if (!room) {
+                    showNotification('Room not found', 'error');
+                    return;
+                }
+
+                // Check if already a member
+                if (room.members && room.members[currentUser.uid]) {
+                    showNotification('You are already a member of this room', 'error');
+                    return;
+                }
+
+                // Get current user data
+                const currentUserSnapshot = await database.ref('users/' + currentUser.uid).once('value');
+                const currentUserData = currentUserSnapshot.val();
+
+                // Add user to room
+                await database.ref('rooms/' + roomId + '/members/' + currentUser.uid).set({
+                    joinedAt: Date.now(),
+                    role: 'member',
+                    username: currentUserData.username
+                });
+
+                // Add room to user's rooms
+                await database.ref('userRooms/' + currentUser.uid + '/' + roomId).set({
+                    joinedAt: Date.now(),
+                    timeSpent: 0,
+                    roomName: room.name,
+                    roomCode: roomCode
+                });
+
+                document.getElementById('joinRoomCode').value = '';
+                closeModal('joinRoomModal');
+                showNotification(`Joined room: ${room.name}`, 'success');
+                loadRooms();
+
+            } catch (error) {
+                console.error('Join room error:', error);
+                showNotification('Failed to join room: ' + error.message, 'error');
+            }
+        }
+
+        function shareRoom(roomId, roomCode) {
+            document.getElementById('shareRoomCode').value = roomCode;
+            document.getElementById('shareRoomModal').style.display = 'block';
+            
+            // Store current room for sharing
+            window.currentSharingRoom = roomId;
+        }
+
+        function copyRoomCode() {
+            const roomCode = document.getElementById('shareRoomCode');
+            roomCode.select();
+            document.execCommand('copy');
+            showNotification('Room code copied to clipboard!', 'success');
+        }
+
+        async function inviteUserToRoom() {
+            const username = document.getElementById('inviteUsername').value.trim();
+            
+            if (!username) {
+                showNotification('Please enter username', 'error');
+                return;
             }
 
-            await collection.doc(messageId).update({ reactions });
+            try {
+                // Get user ID from username
+                const userIdSnapshot = await database.ref('usernames/' + username).once('value');
+                if (!userIdSnapshot.exists()) {
+                    showNotification('User not found', 'error');
+                    return;
+                }
+
+                const userId = userIdSnapshot.val();
+                const roomId = window.currentSharingRoom;
+
+                // Get room data
+                const roomSnapshot = await database.ref('rooms/' + roomId).once('value');
+                const room = roomSnapshot.val();
+
+                // Send room invitation
+                await database.ref('roomInvitations/' + userId + '/' + roomId).set({
+                    roomName: room.name,
+                    roomCode: room.roomCode,
+                    invitedBy: currentUser.uid,
+                    invitedByUsername: (await database.ref('users/' + currentUser.uid).once('value')).val().username,
+                    timestamp: Date.now(),
+                    status: 'pending'
+                });
+
+                document.getElementById('inviteUsername').value = '';
+                showNotification(`Invitation sent to ${username}`, 'success');
+
+            } catch (error) {
+                console.error('Invite error:', error);
+                showNotification('Failed to send invitation: ' + error.message, 'error');
+            }
+        }
+
+        async function joinRoom(roomId) {
+            currentRoom = roomId;
+            currentFriend = null;
+            
+            const roomSnapshot = await database.ref('rooms/' + roomId).once('value');
+            const room = roomSnapshot.val();
+            
+            document.getElementById('chatTitle').textContent = '🏠 ' + room.name;
+            document.getElementById('chatSubtitle').textContent = room.description || 'Secure communication channel';
+            
+            loadMessages(roomId);
+            loadRoomMembers(roomId);
+            
+            // Update user's room activity
+            const startTime = Date.now();
+            database.ref('userRooms/' + currentUser.uid + '/' + roomId).update({
+                lastVisit: firebase.database.ServerValue.TIMESTAMP,
+                currentSession: startTime
+            });
+        }
+
+        async function loadMessages(roomId) {
+            const messagesRef = database.ref('messages/' + roomId).limitToLast(50);
+            
+            messagesRef.on('value', (snapshot) => {
+                const messages = snapshot.val() || {};
+                const chatMessages = document.getElementById('chatMessages');
+                chatMessages.innerHTML = '';
+                
+                Object.keys(messages).forEach(async (messageId) => {
+                    const message = messages[messageId];
+                    const userSnapshot = await database.ref('users/' + message.userId).once('value');
+                    const user = userSnapshot.val();
+                    
+                    const messageElement = document.createElement('div');
+                    messageElement.className = `message ${message.userId === currentUser.uid ? 'own' : 'other'}`;
+                    
+                    const timestamp = new Date(message.timestamp).toLocaleTimeString();
+                    const reactions = message.reactions || {};
+                    
+                    let reactionsHtml = '';
+                    Object.keys(reactions).forEach(emoji => {
+                        const count = Object.keys(reactions[emoji]).length;
+                        reactionsHtml += `<span class="reaction" onclick="toggleReaction('${messageId}', '${emoji}')">${emoji} ${count}</span>`;
+                    });
+                    
+                    messageElement.innerHTML = `
+                        <div class="message-header">
+                            ${user ? user.username : 'Unknown'} • ${timestamp}
+                        </div>
+                        <div class="message-content">${message.content}</div>
+                        <div class="message-reactions">${reactionsHtml}</div>
+                        <div class="message-status ${message.status || 'sent'}">${getMessageStatusIcon(message.status)}</div>
+                    `;
+                    
+                    chatMessages.appendChild(messageElement);
+                });
+                
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+        }
+
+        function getMessageStatusIcon(status) {
+            switch (status) {
+                case 'delivered': return '✓✓';
+                case 'seen': return '👁️';
+                default: return '✓';
+            }
         }
 
         async function sendMessage() {
-            const messageText = document.getElementById('messageText').value.trim();
-            if (!messageText) return;
-
-            const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
-            const currentUserData = currentUserDoc.data();
-
+            const messageInput = document.getElementById('messageInput');
+            const content = messageInput.value.trim();
+            
+            if (!content || (!currentRoom && !currentFriend)) return;
+            
             const messageData = {
-                content: messageText,
-                sender: currentUser.uid,
-                senderName: currentUserData.name,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                seenBy: [currentUser.uid],
-                reactions: {}
+                userId: currentUser.uid,
+                content: content,
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                status: 'sent'
             };
-
+            
             try {
-                if (currentChatType === 'room') {
-                    await db.collection('chatrooms').doc(currentChat).collection('messages').add(messageData);
-                    
-                    // Update room's last message
-                    await db.collection('chatrooms').doc(currentChat).update({
-                        lastMessage: {
-                            content: messageText,
-                            sender: currentUser.uid,
-                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                        }
-                    });
-                } else {
-                    const chatId = [currentUser.uid, currentChat].sort().join('_');
-                    await db.collection('directMessages').doc(chatId).collection('messages').add(messageData);
+                if (currentRoom) {
+                    await database.ref('messages/' + currentRoom).push(messageData);
+                } else if (currentFriend) {
+                    const chatId = [currentUser.uid, currentFriend].sort().join('_');
+                    await database.ref('directMessages/' + chatId).push(messageData);
                 }
-
-                document.getElementById('messageText').value = '';
+                
+                messageInput.value = '';
             } catch (error) {
-                alert('Error sending message: ' + error.message);
+                showNotification('Failed to send message', 'error');
             }
         }
 
@@ -1024,141 +1231,589 @@
             }
         }
 
-        // Profile Functions
-        function showProfile() {
-            document.getElementById('profileModal').classList.remove('hidden');
-            loadProfileData();
-        }
-
-        function hideProfile() {
-            document.getElementById('profileModal').classList.add('hidden');
-        }
-
-        async function loadProfileData() {
-            const userDoc = await db.collection('users').doc(currentUser.uid).get();
-            const userData = userDoc.data();
-
-            document.getElementById('profileName').value = userData.name || '';
-            document.getElementById('profileAge').value = userData.age || '';
-            document.getElementById('profileGender').value = userData.gender || '';
-        }
-
-        async function updateProfile() {
-            const name = document.getElementById('profileName').value;
-            const age = document.getElementById('profileAge').value;
-            const gender = document.getElementById('profileGender').value;
-
+        // Friend Functions
+        async function searchUsers() {
+            const query = document.getElementById('userSearch').value.toLowerCase().trim();
+            const searchResults = document.getElementById('searchResults');
+            
+            if (query.length < 2) {
+                searchResults.innerHTML = '';
+                return;
+            }
+            
+            if (!currentUser) {
+                searchResults.innerHTML = '<div style="color: #ff4444; padding: 10px;">Please sign in to search users</div>';
+                return;
+            }
+            
             try {
-                await db.collection('users').doc(currentUser.uid).update({
-                    name: name,
-                    age: parseInt(age) || null,
-                    gender: gender || null
-                });
-
-                alert('Profile updated successfully!');
-                hideProfile();
+                // Search by username in the usernames index
+                const usernamesSnapshot = await database.ref('usernames').once('value');
+                const usernames = usernamesSnapshot.val() || {};
+                
+                // Get current friends to avoid showing them in search
+                const friendsSnapshot = await database.ref('friends/' + currentUser.uid).once('value');
+                const friends = friendsSnapshot.val() || {};
+                
+                // Get pending friend requests to show status
+                const myRequestsSnapshot = await database.ref('friendRequests/' + currentUser.uid).once('value');
+                const myRequests = myRequestsSnapshot.val() || {};
+                
+                searchResults.innerHTML = '<h5 style="margin-bottom: 10px;">🔍 SEARCH RESULTS</h5>';
+                
+                let foundUsers = false;
+                
+                // Search through usernames
+                for (const username in usernames) {
+                    if (username.toLowerCase().includes(query)) {
+                        const userId = usernames[username];
+                        
+                        if (userId !== currentUser.uid && !friends[userId]) {
+                            // Get user details
+                            const userSnapshot = await database.ref('users/' + userId).once('value');
+                            const user = userSnapshot.val();
+                            
+                            if (user) {
+                                foundUsers = true;
+                                const resultElement = document.createElement('div');
+                                resultElement.className = 'user-search-result';
+                                
+                                // Check if friend request already sent or received
+                                const requestSent = myRequests[userId] && myRequests[userId].status === 'sent';
+                                const requestReceived = myRequests[userId] && myRequests[userId].status === 'received';
+                                
+                                const onlineIndicator = user.online ? 
+                                    '<span class="online-indicator"></span>' : 
+                                    '<span class="offline-indicator"></span>';
+                                
+                                let buttonHtml = '';
+                                if (requestSent) {
+                                    buttonHtml = '<button class="btn btn-secondary" disabled style="font-size: 0.8em; padding: 6px 12px;">📤 Request Sent</button>';
+                                } else if (requestReceived) {
+                                    buttonHtml = '<button class="btn" onclick="acceptFriendRequest(\'' + userId + '\')" style="font-size: 0.8em; padding: 6px 12px;">✓ Accept Request</button>';
+                                } else {
+                                    buttonHtml = '<button class="btn" onclick="sendFriendRequest(\'' + userId + '\')" style="font-size: 0.8em; padding: 6px 12px;">➕ Add Friend</button>';
+                                }
+                                
+                                resultElement.innerHTML = `
+                                    <div>${onlineIndicator}<strong>👤 ${user.username}</strong></div>
+                                    <div style="font-size: 0.8em; opacity: 0.7; margin: 3px 0;">
+                                        ${user.age} years • ${user.gender}
+                                    </div>
+                                    <div style="margin-top: 8px;">
+                                        ${buttonHtml}
+                                    </div>
+                                `;
+                                
+                                searchResults.appendChild(resultElement);
+                            }
+                        }
+                    }
+                }
+                
+                if (!foundUsers) {
+                    searchResults.innerHTML += '<div style="text-align: center; opacity: 0.5; padding: 20px;">No users found matching "' + query + '"</div>';
+                }
             } catch (error) {
-                alert('Error updating profile: ' + error.message);
+                console.error('Search error:', error);
+                searchResults.innerHTML = '<div style="color: #ff4444; padding: 10px;">Search failed: ' + error.message + '</div>';
             }
         }
 
-        function updateProfilePic() {
-            alert('Profile picture upload feature coming soon!');
+        async function showUserProfile(userId) {
+            const userSnapshot = await database.ref('users/' + userId).once('value');
+            const user = userSnapshot.val();
+            
+            if (confirm(`Send friend request to ${user.username}?`)) {
+                await sendFriendRequest(userId);
+            }
         }
 
-        // Notification Functions
-        function toggleNotifications() {
-            const panel = document.getElementById('notificationsPanel');
-            panel.classList.toggle('hidden');
-        }
-
-        async function loadNotifications() {
-            db.collection('notifications')
-                .where('userId', '==', currentUser.uid)
-                .orderBy('timestamp', 'desc')
-                .limit(10)
-                .onSnapshot(snapshot => {
-                    const notificationsList = document.getElementById('notificationsList');
-                    const badge = document.getElementById('notificationBadge');
-                    
-                    notificationsList.innerHTML = '';
-                    let unreadCount = 0;
-
-                    snapshot.forEach(doc => {
-                        const notification = doc.data();
-                        if (!notification.read) unreadCount++;
-                        
-                        const notificationElement = createNotificationElement(doc.id, notification);
-                        notificationsList.appendChild(notificationElement);
-                    });
-
-                    if (unreadCount > 0) {
-                        badge.textContent = unreadCount;
-                        badge.classList.remove('hidden');
-                    } else {
-                        badge.classList.add('hidden');
-                    }
+        async function sendFriendRequest(userId) {
+            if (!currentUser) {
+                showNotification('Please sign in first', 'error');
+                return;
+            }
+            
+            try {
+                // Check if already friends
+                const friendCheck = await database.ref('friends/' + currentUser.uid + '/' + userId).once('value');
+                if (friendCheck.exists()) {
+                    showNotification('Already friends with this user', 'error');
+                    return;
+                }
+                
+                // Get current user data
+                const currentUserSnapshot = await database.ref('users/' + currentUser.uid).once('value');
+                const currentUserData = currentUserSnapshot.val();
+                
+                // Send friend request to recipient
+                await database.ref('friendRequests/' + userId + '/' + currentUser.uid).set({
+                    timestamp: Date.now(),
+                    status: 'received',
+                    senderUsername: currentUserData.username,
+                    senderAge: currentUserData.age,
+                    senderGender: currentUserData.gender
                 });
+                
+                // Mark as sent in sender's requests
+                await database.ref('friendRequests/' + currentUser.uid + '/' + userId).set({
+                    timestamp: Date.now(),
+                    status: 'sent',
+                    recipientUsername: (await database.ref('users/' + userId).once('value')).val().username
+                });
+                
+                showNotification('Friend request sent successfully!', 'success');
+                
+                // Refresh search results to show updated status
+                searchUsers();
+                
+            } catch (error) {
+                console.error('Friend request error:', error);
+                showNotification('Failed to send friend request: ' + error.message, 'error');
+            }
         }
 
-        function createNotificationElement(notificationId, notification) {
-            const div = document.createElement('div');
-            div.className = `p-3 border-b border-gray-600 ${!notification.read ? 'bg-blue-900 bg-opacity-30' : ''}`;
+        async function loadFriendRequests() {
+            if (!currentUser) return;
             
-            const timestamp = notification.timestamp ? new Date(notification.timestamp.toDate()).toLocaleString() : '';
-            
-            div.innerHTML = `
-                <div class="text-sm">${notification.content}</div>
-                <div class="text-xs text-gray-400 mt-1">${timestamp}</div>
-            `;
-
-            div.onclick = () => markNotificationAsRead(notificationId);
-            
-            return div;
+            try {
+                const requestsSnapshot = await database.ref('friendRequests/' + currentUser.uid).once('value');
+                const requests = requestsSnapshot.val() || {};
+                
+                const friendRequests = document.getElementById('friendRequests');
+                friendRequests.innerHTML = '';
+                
+                let hasRequests = false;
+                
+                for (const senderId in requests) {
+                    if (requests[senderId].status === 'received') {
+                        hasRequests = true;
+                        const requestData = requests[senderId];
+                        
+                        const requestElement = document.createElement('div');
+                        requestElement.className = 'friend-request';
+                        
+                        requestElement.innerHTML = `
+                            <div><strong>👤 ${requestData.senderUsername}</strong></div>
+                            <div style="font-size: 0.8em; margin: 5px 0; opacity: 0.7;">${requestData.senderAge} years • ${requestData.senderGender}</div>
+                            <div style="font-size: 0.8em; margin: 5px 0;">📩 Friend Request</div>
+                            <div style="margin-top: 10px;">
+                                <button class="btn" onclick="acceptFriendRequest('${senderId}')" style="margin-right: 5px; font-size: 0.8em; padding: 8px 12px;">✓ Accept</button>
+                                <button class="btn btn-secondary" onclick="declineFriendRequest('${senderId}')" style="font-size: 0.8em; padding: 8px 12px;">✗ Decline</button>
+                            </div>
+                        `;
+                        
+                        friendRequests.appendChild(requestElement);
+                    }
+                }
+                
+                if (!hasRequests) {
+                    friendRequests.innerHTML = '<div style="text-align: center; opacity: 0.5; padding: 10px; font-size: 0.9em;">No pending friend requests</div>';
+                }
+            } catch (error) {
+                console.error('Error loading friend requests:', error);
+                friendRequests.innerHTML = '<div style="color: #ff4444; padding: 10px;">Failed to load friend requests</div>';
+            }
         }
 
-        async function markNotificationAsRead(notificationId) {
-            await db.collection('notifications').doc(notificationId).update({
-                read: true
+        async function acceptFriendRequest(senderId) {
+            try {
+                // Add to friends list
+                await database.ref('friends/' + currentUser.uid + '/' + senderId).set({
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+                await database.ref('friends/' + senderId + '/' + currentUser.uid).set({
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+                
+                // Update request status
+                await database.ref('friendRequests/' + currentUser.uid + '/' + senderId).update({
+                    status: 'accepted'
+                });
+                
+                // Notify sender
+                await database.ref('notifications/' + senderId).push({
+                    type: 'friend_accepted',
+                    from: currentUser.uid,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+                
+                showNotification('Friend request accepted!', 'success');
+                loadFriendRequests();
+                loadFriends();
+            } catch (error) {
+                showNotification('Failed to accept friend request', 'error');
+            }
+        }
+
+        async function declineFriendRequest(senderId) {
+            try {
+                await database.ref('friendRequests/' + currentUser.uid + '/' + senderId).update({
+                    status: 'declined'
+                });
+                
+                // Notify sender
+                await database.ref('notifications/' + senderId).push({
+                    type: 'friend_declined',
+                    from: currentUser.uid,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+                
+                showNotification('Friend request declined', 'success');
+                loadFriendRequests();
+            } catch (error) {
+                showNotification('Failed to decline friend request', 'error');
+            }
+        }
+
+        async function loadFriends() {
+            if (!currentUser) return;
+            
+            try {
+                const friendsSnapshot = await database.ref('friends/' + currentUser.uid).once('value');
+                const friends = friendsSnapshot.val() || {};
+                
+                const friendsList = document.getElementById('friendsList');
+                friendsList.innerHTML = '<h4 style="margin-bottom: 10px;">👥 MY FRIENDS</h4>';
+                
+                if (Object.keys(friends).length === 0) {
+                    friendsList.innerHTML += '<div style="text-align: center; opacity: 0.5; padding: 20px;">No friends yet. Search for users above to send friend requests!</div>';
+                    return;
+                }
+                
+                for (const friendId in friends) {
+                    try {
+                        const friendSnapshot = await database.ref('users/' + friendId).once('value');
+                        const friend = friendSnapshot.val();
+                        
+                        if (friend) {
+                            const friendElement = document.createElement('div');
+                            friendElement.className = 'friend-item';
+                            friendElement.onclick = () => startDirectChat(friendId);
+                            
+                            const onlineIndicator = friend.online ? 
+                                '<span class="online-indicator"></span>' : 
+                                '<span class="offline-indicator"></span>';
+                            
+                            const lastSeen = friend.online ? 'Online' : 
+                                (friend.lastSeen ? 'Last seen: ' + new Date(friend.lastSeen).toLocaleString() : 'Last seen: Unknown');
+                            
+                            friendElement.innerHTML = `
+                                <div>${onlineIndicator}<strong>${friend.username}</strong></div>
+                                <div style="font-size: 0.8em; opacity: 0.7;">${lastSeen}</div>
+                                <div style="font-size: 0.7em; opacity: 0.5;">${friend.age} years • ${friend.gender}</div>
+                            `;
+                            
+                            friendsList.appendChild(friendElement);
+                        }
+                    } catch (error) {
+                        console.error('Error loading friend:', friendId, error);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading friends:', error);
+                showNotification('Failed to load friends', 'error');
+            }
+        }
+
+        function startDirectChat(friendId) {
+            currentFriend = friendId;
+            currentRoom = null;
+            
+            database.ref('users/' + friendId).once('value').then(snapshot => {
+                const friend = snapshot.val();
+                document.getElementById('chatTitle').textContent = '💬 ' + friend.username;
+                document.getElementById('chatSubtitle').textContent = 'Direct Message';
+                
+                loadDirectMessages(friendId);
             });
         }
 
-        // Room Management Functions
-        function showRoomInfo() {
-            if (currentChatType === 'room') {
-                alert('Room info feature coming soon!');
-            }
-        }
-
-        function inviteToRoom() {
-            if (currentChatType === 'room') {
-                const username = prompt('Enter username to invite:');
-                if (username) {
-                    inviteUserToRoom(username);
-                }
-            }
-        }
-
-        async function inviteUserToRoom(username) {
-            try {
-                const userQuery = await db.collection('users').where('username', '==', username).get();
-                if (userQuery.empty) {
-                    alert('User not found');
-                    return;
-                }
-
-                const userDoc = userQuery.docs[0];
-                const userId = userDoc.id;
-
-                await db.collection('chatrooms').doc(currentChat).update({
-                    invitedUsers: firebase.firestore.FieldValue.arrayUnion(userId)
+        async function loadDirectMessages(friendId) {
+            const chatId = [currentUser.uid, friendId].sort().join('_');
+            const messagesRef = database.ref('directMessages/' + chatId).limitToLast(50);
+            
+            messagesRef.on('value', (snapshot) => {
+                const messages = snapshot.val() || {};
+                const chatMessages = document.getElementById('chatMessages');
+                chatMessages.innerHTML = '';
+                
+                Object.keys(messages).forEach(async (messageId) => {
+                    const message = messages[messageId];
+                    const userSnapshot = await database.ref('users/' + message.userId).once('value');
+                    const user = userSnapshot.val();
+                    
+                    const messageElement = document.createElement('div');
+                    messageElement.className = `message ${message.userId === currentUser.uid ? 'own' : 'other'}`;
+                    
+                    const timestamp = new Date(message.timestamp).toLocaleTimeString();
+                    
+                    messageElement.innerHTML = `
+                        <div class="message-header">
+                            ${user ? user.username : 'Unknown'} • ${timestamp}
+                        </div>
+                        <div class="message-content">${message.content}</div>
+                        <div class="message-status ${message.status || 'sent'}">${getMessageStatusIcon(message.status)}</div>
+                    `;
+                    
+                    chatMessages.appendChild(messageElement);
                 });
+                
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+        }
 
-                alert('User invited successfully!');
-            } catch (error) {
-                alert('Error inviting user: ' + error.message);
+        // Profile Functions
+        function showProfile() {
+            document.getElementById('profileModal').style.display = 'block';
+            loadProfileData();
+            loadRoomActivity();
+        }
+
+        async function loadProfileData() {
+            const userSnapshot = await database.ref('users/' + currentUser.uid).once('value');
+            const user = userSnapshot.val();
+            
+            document.getElementById('profileUsername').value = user.username;
+            document.getElementById('profileEmail').value = user.email;
+            document.getElementById('profileAge').value = user.age;
+            document.getElementById('profileGender').value = user.gender;
+            
+            if (user.profilePicture) {
+                document.getElementById('profileImage').src = user.profilePicture;
             }
         }
+
+        async function updateProfile() {
+            const age = document.getElementById('profileAge').value;
+            const gender = document.getElementById('profileGender').value;
+            
+            try {
+                await database.ref('users/' + currentUser.uid).update({
+                    age: parseInt(age),
+                    gender: gender
+                });
+                
+                showNotification('Profile updated successfully!', 'success');
+            } catch (error) {
+                showNotification('Failed to update profile', 'error');
+            }
+        }
+
+        async function updateProfilePicture() {
+            const file = document.getElementById('profilePicInput').files[0];
+            if (!file) return;
+            
+            try {
+                const storageRef = storage.ref('profilePictures/' + currentUser.uid);
+                const snapshot = await storageRef.put(file);
+                const downloadURL = await snapshot.ref.getDownloadURL();
+                
+                await database.ref('users/' + currentUser.uid).update({
+                    profilePicture: downloadURL
+                });
+                
+                document.getElementById('profileImage').src = downloadURL;
+                showNotification('Profile picture updated!', 'success');
+            } catch (error) {
+                showNotification('Failed to update profile picture', 'error');
+            }
+        }
+
+        async function loadRoomActivity() {
+            const userRoomsSnapshot = await database.ref('userRooms/' + currentUser.uid).once('value');
+            const userRooms = userRoomsSnapshot.val() || {};
+            
+            const roomActivity = document.getElementById('roomActivity');
+            roomActivity.innerHTML = '';
+            
+            for (const roomId in userRooms) {
+                const roomSnapshot = await database.ref('rooms/' + roomId).once('value');
+                const room = roomSnapshot.val();
+                const activity = userRooms[roomId];
+                
+                if (room) {
+                    const joinDate = new Date(activity.joinedAt).toLocaleDateString();
+                    const lastVisit = activity.lastVisit ? 
+                        new Date(activity.lastVisit).toLocaleDateString() : 'Never';
+                    
+                    const activityElement = document.createElement('div');
+                    activityElement.style.cssText = 'margin-bottom: 15px; padding: 10px; background: rgba(0,255,65,0.1); border-radius: 5px;';
+                    
+                    activityElement.innerHTML = `
+                        <div><strong>🏠 ${room.name}</strong></div>
+                        <div style="font-size: 0.8em; opacity: 0.7;">
+                            📅 Joined: ${joinDate}<br>
+                            🕒 Last Visit: ${lastVisit}<br>
+                            ⏱️ Time Spent: ${Math.floor((activity.timeSpent || 0) / 60000)} minutes
+                        </div>
+                    `;
+                    
+                    roomActivity.appendChild(activityElement);
+                }
+            }
+        }
+
+        // Utility Functions
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            
+            if (type === 'error') {
+                notification.style.background = 'rgba(255, 68, 68, 0.9)';
+            }
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function showEmojiPicker() {
+            const picker = document.getElementById('emojiPicker');
+            picker.style.display = picker.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function addEmoji(emoji) {
+            const messageInput = document.getElementById('messageInput');
+            messageInput.value += emoji;
+            document.getElementById('emojiPicker').style.display = 'none';
+        }
+
+        async function toggleReaction(messageId, emoji) {
+            if (!currentRoom) return;
+            
+            const reactionRef = database.ref(`messages/${currentRoom}/${messageId}/reactions/${emoji}/${currentUser.uid}`);
+            const snapshot = await reactionRef.once('value');
+            
+            if (snapshot.exists()) {
+                await reactionRef.remove();
+            } else {
+                await reactionRef.set(true);
+            }
+        }
+
+        async function loadRoomMembers(roomId) {
+            const roomSnapshot = await database.ref('rooms/' + roomId).once('value');
+            const room = roomSnapshot.val();
+            
+            if (!room || !room.members) return;
+            
+            const roomMembers = document.getElementById('roomMembers');
+            roomMembers.innerHTML = '<h4>👥 ROOM MEMBERS</h4>';
+            
+            for (const memberId in room.members) {
+                const memberSnapshot = await database.ref('users/' + memberId).once('value');
+                const member = memberSnapshot.val();
+                
+                if (member) {
+                    const memberElement = document.createElement('div');
+                    memberElement.style.cssText = 'margin: 5px 0; padding: 5px; font-size: 0.9em;';
+                    
+                    const onlineIndicator = member.online ? 
+                        '<span class="online-indicator"></span>' : 
+                        '<span class="offline-indicator"></span>';
+                    
+                    memberElement.innerHTML = `${onlineIndicator}${member.username}`;
+                    roomMembers.appendChild(memberElement);
+                }
+            }
+        }
+
+        // Auth State Observer
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUser = user;
+                
+                // Update user online status
+                await database.ref('users/' + user.uid).update({
+                    online: true,
+                    lastSeen: Date.now()
+                });
+                
+                // Set up disconnect handler
+                database.ref('users/' + user.uid).onDisconnect().update({
+                    online: false,
+                    lastSeen: Date.now()
+                });
+                
+                document.getElementById('authSection').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'grid';
+                
+                loadRooms();
+                loadFriends();
+                loadFriendRequests();
+                
+                // Set up real-time listeners
+                setupRealTimeListeners();
+                
+                // Load system stats
+                updateSystemStats();
+                
+            } else {
+                currentUser = null;
+                document.getElementById('authSection').style.display = 'flex';
+                document.getElementById('mainApp').style.display = 'none';
+            }
+        });
+
+        function setupRealTimeListeners() {
+            if (!currentUser) return;
+            
+            // Listen for friend requests
+            database.ref('friendRequests/' + currentUser.uid).on('value', (snapshot) => {
+                loadFriendRequests();
+            });
+            
+            // Listen for friends list changes
+            database.ref('friends/' + currentUser.uid).on('value', (snapshot) => {
+                loadFriends();
+            });
+            
+            // Listen for user status changes
+            database.ref('users').on('child_changed', (snapshot) => {
+                const userId = snapshot.key;
+                const userData = snapshot.val();
+                
+                // Update friend status if they're in our friends list
+                database.ref('friends/' + currentUser.uid + '/' + userId).once('value').then(friendSnapshot => {
+                    if (friendSnapshot.exists()) {
+                        loadFriends(); // Refresh friends list to show updated status
+                    }
+                });
+            });
+        }
+
+        async function updateSystemStats() {
+            // Count online users
+            const usersSnapshot = await database.ref('users').orderByChild('online').equalTo(true).once('value');
+            const onlineUsers = usersSnapshot.val() || {};
+            document.getElementById('onlineCount').textContent = Object.keys(onlineUsers).length;
+            
+            // Count active rooms
+            const roomsSnapshot = await database.ref('rooms').once('value');
+            const rooms = roomsSnapshot.val() || {};
+            document.getElementById('activeRooms').textContent = Object.keys(rooms).length;
+        }
+
+        // Initialize app
+        window.addEventListener('load', () => {
+            initMatrix();
+        });
+
+        // Handle window resize for matrix
+        window.addEventListener('resize', () => {
+            const canvas = document.getElementById('matrix');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9683f204e4bf7f4e',t:'MTc1NDAzNjczMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9683d510c4d88e80',t:'MTc1NDAzNTU0Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
