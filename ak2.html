@@ -620,7 +620,9 @@
                 updateOnlineStatus(true);
                 loadRooms();
                 loadFriends();
+                loadNotifications();
                 setupPresence();
+                setupNotificationListener();
             } else {
                 currentUser = null;
                 showAuthSection();
@@ -825,14 +827,20 @@
             const roomDescription = document.getElementById('roomDescription').value;
 
             try {
+                // Get current user data
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                const userData = userDoc.data();
+
                 const roomData = {
                     name: roomName,
                     type: roomType,
                     description: roomDescription,
                     createdBy: currentUser.uid,
+                    createdByName: userData.name || currentUser.displayName,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     members: [currentUser.uid],
-                    memberCount: 1
+                    memberCount: 1,
+                    lastActivity: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
                 const roomRef = await db.collection('rooms').add(roomData);
@@ -841,68 +849,144 @@
                 await db.collection('roomActivity').add({
                     roomId: roomRef.id,
                     userId: currentUser.uid,
-                    action: 'joined',
+                    userName: userData.name || currentUser.displayName,
+                    action: 'created',
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
+                // Clear form
+                document.getElementById('roomName').value = '';
+                document.getElementById('roomDescription').value = '';
+                
                 closeModal('createRoomModal');
                 showNotification('Room created successfully!', 'success');
                 loadRooms();
             } catch (error) {
-                showNotification(error.message, 'error');
+                console.error('Error creating room:', error);
+                showNotification('Failed to create room: ' + error.message, 'error');
             }
         }
 
         async function loadRooms() {
             try {
+                // First load rooms where user is a member
                 const roomsSnapshot = await db.collection('rooms')
                     .where('members', 'array-contains', currentUser.uid)
-                    .orderBy('createdAt', 'desc')
+                    .get();
+
+                // Also load public rooms
+                const publicRoomsSnapshot = await db.collection('rooms')
+                    .where('type', '==', 'public')
                     .get();
 
                 const roomsList = document.getElementById('roomsList');
                 roomsList.innerHTML = '';
 
+                const allRooms = new Map();
+
+                // Add user's rooms
                 roomsSnapshot.forEach((doc) => {
-                    const room = doc.data();
+                    allRooms.set(doc.id, { ...doc.data(), id: doc.id, isMember: true });
+                });
+
+                // Add public rooms (if not already added)
+                publicRoomsSnapshot.forEach((doc) => {
+                    if (!allRooms.has(doc.id)) {
+                        allRooms.set(doc.id, { ...doc.data(), id: doc.id, isMember: false });
+                    }
+                });
+
+                // Sort by creation date
+                const sortedRooms = Array.from(allRooms.values()).sort((a, b) => {
+                    if (!a.createdAt || !b.createdAt) return 0;
+                    return b.createdAt.toDate() - a.createdAt.toDate();
+                });
+
+                sortedRooms.forEach((room) => {
                     const roomElement = document.createElement('div');
                     roomElement.className = 'room-item';
-                    roomElement.onclick = () => joinRoom(doc.id, room);
+                    roomElement.setAttribute('data-room-id', room.id);
+                    roomElement.onclick = () => joinRoom(room.id, room);
                     
                     roomElement.innerHTML = `
                         <div>
                             <strong>${room.name}</strong>
                             <div class="room-members">
-                                <i class="fas fa-users"></i> ${room.memberCount} members
+                                <i class="fas fa-users"></i> ${room.memberCount || 0} members
                                 ${room.type === 'private' ? '<i class="fas fa-lock"></i>' : '<i class="fas fa-globe"></i>'}
+                                ${!room.isMember ? '<span style="color: #74b9ff; font-size: 11px;">• Join</span>' : ''}
                             </div>
+                            ${room.description ? `<div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">${room.description}</div>` : ''}
                         </div>
                     `;
                     
                     roomsList.appendChild(roomElement);
                 });
+
+                if (sortedRooms.length === 0) {
+                    roomsList.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 20px;">No rooms available. Create your first room!</div>';
+                }
             } catch (error) {
                 console.error('Error loading rooms:', error);
+                showNotification('Failed to load rooms', 'error');
             }
         }
 
         async function joinRoom(roomId, roomData) {
-            currentRoom = roomId;
-            
-            // Update UI
-            document.getElementById('currentRoomInfo').innerHTML = `
-                <h3>${roomData.name}</h3>
-                <p><i class="fas fa-users"></i> ${roomData.memberCount} members</p>
-            `;
+            try {
+                // If user is not a member of the room, add them
+                if (!roomData.isMember && roomData.type === 'public') {
+                    await db.collection('rooms').doc(roomId).update({
+                        members: firebase.firestore.FieldValue.arrayUnion(currentUser.uid),
+                        memberCount: firebase.firestore.FieldValue.increment(1)
+                    });
 
-            // Update active room styling
-            document.querySelectorAll('.room-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            event.target.closest('.room-item').classList.add('active');
+                    // Add room activity
+                    const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                    const userData = userDoc.data();
+                    
+                    await db.collection('roomActivity').add({
+                        roomId: roomId,
+                        userId: currentUser.uid,
+                        userName: userData.name || currentUser.displayName,
+                        action: 'joined',
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
 
-            // Load messages
-            loadMessages(roomId);
+                    // Refresh rooms list
+                    loadRooms();
+                }
+
+                currentRoom = roomId;
+                
+                // Update UI
+                document.getElementById('currentRoomInfo').innerHTML = `
+                    <h3>${roomData.name}</h3>
+                    <p><i class="fas fa-users"></i> ${roomData.memberCount || 0} members</p>
+                    ${roomData.description ? `<p style="font-size: 14px; opacity: 0.8;">${roomData.description}</p>` : ''}
+                `;
+
+                // Update active room styling
+                document.querySelectorAll('.room-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                const roomElement = document.querySelector(`[data-room-id="${roomId}"]`);
+                if (roomElement) {
+                    roomElement.classList.add('active');
+                }
+
+                // Load messages
+                loadMessages(roomId);
+                
+                // Enable message input
+                document.getElementById('messageInput').disabled = false;
+                document.getElementById('messageInput').placeholder = `Type your message in ${roomData.name}...`;
+                
+            } catch (error) {
+                console.error('Error joining room:', error);
+                showNotification('Failed to join room', 'error');
+            }
         }
 
         // Messaging Functions
@@ -912,14 +996,21 @@
                 messagesListener();
             }
 
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML = '<div style="text-align: center; padding: 20px; opacity: 0.7;">Loading messages...</div>';
+
             const messagesRef = db.collection('messages')
                 .where('roomId', '==', roomId)
                 .orderBy('timestamp', 'asc')
                 .limit(50);
 
             messagesListener = messagesRef.onSnapshot((snapshot) => {
-                const messagesContainer = document.getElementById('chatMessages');
                 messagesContainer.innerHTML = '';
+
+                if (snapshot.empty) {
+                    messagesContainer.innerHTML = '<div style="text-align: center; padding: 20px; opacity: 0.7;">No messages yet. Start the conversation!</div>';
+                    return;
+                }
 
                 snapshot.forEach((doc) => {
                     const message = doc.data();
@@ -927,7 +1018,12 @@
                 });
 
                 // Scroll to bottom
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                setTimeout(() => {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }, 100);
+            }, (error) => {
+                console.error('Error loading messages:', error);
+                messagesContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #ff6b6b;">Failed to load messages</div>';
             });
         }
 
@@ -935,11 +1031,17 @@
             const messagesContainer = document.getElementById('chatMessages');
             const messageElement = document.createElement('div');
             messageElement.className = `message ${message.senderId === currentUser.uid ? 'sent' : 'received'}`;
+            messageElement.setAttribute('data-message-id', messageId);
             
-            const timestamp = message.timestamp ? new Date(message.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Sending...';
+            const timestamp = message.timestamp ? 
+                new Date(message.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 
+                'Sending...';
+            
+            const senderName = message.senderId !== currentUser.uid ? message.senderName : '';
             
             messageElement.innerHTML = `
-                <div>${message.text}</div>
+                ${senderName ? `<div style="font-size: 12px; opacity: 0.8; margin-bottom: 5px;">${senderName}</div>` : ''}
+                <div style="word-wrap: break-word;">${escapeHtml(message.text)}</div>
                 <div class="message-time">${timestamp}</div>
                 ${message.senderId === currentUser.uid ? `
                     <div class="message-status">
@@ -948,37 +1050,70 @@
                     </div>
                 ` : ''}
                 <div class="emoji-reactions">
-                    <button class="emoji-btn" onclick="addReaction('${messageId}', '🔥')">🔥</button>
-                    <button class="emoji-btn" onclick="addReaction('${messageId}', '❤️')">❤️</button>
-                    <button class="emoji-btn" onclick="addReaction('${messageId}', '😂')">😂</button>
-                    <button class="emoji-btn" onclick="addReaction('${messageId}', '👍')">👍</button>
+                    <button class="emoji-btn" onclick="addReaction('${messageId}', '🔥')" title="Fire">🔥</button>
+                    <button class="emoji-btn" onclick="addReaction('${messageId}', '❤️')" title="Love">❤️</button>
+                    <button class="emoji-btn" onclick="addReaction('${messageId}', '😂')" title="Laugh">😂</button>
+                    <button class="emoji-btn" onclick="addReaction('${messageId}', '👍')" title="Like">👍</button>
                 </div>
+                ${message.reactions && Object.keys(message.reactions).length > 0 ? `
+                    <div style="margin-top: 5px;">
+                        ${Object.entries(message.reactions).map(([emoji, users]) => 
+                            users.length > 0 ? `<span style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 10px; margin-right: 5px; font-size: 12px;">${emoji} ${users.length}</span>` : ''
+                        ).join('')}
+                    </div>
+                ` : ''}
             `;
             
             messagesContainer.appendChild(messageElement);
+        }
+
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         async function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const messageText = messageInput.value.trim();
             
-            if (!messageText || !currentRoom) return;
+            if (!messageText || !currentRoom) {
+                if (!currentRoom) {
+                    showNotification('Please select a room first', 'info');
+                }
+                return;
+            }
 
             try {
+                // Get current user data
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                const userData = userDoc.data();
+
+                // Add message to Firestore
                 await db.collection('messages').add({
                     roomId: currentRoom,
                     senderId: currentUser.uid,
-                    senderName: currentUser.displayName || currentUser.email,
+                    senderName: userData.name || currentUser.displayName || currentUser.email,
                     text: messageText,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    delivered: false,
+                    delivered: true,
                     seen: false,
                     reactions: {}
                 });
 
+                // Update room's last activity
+                await db.collection('rooms').doc(currentRoom).update({
+                    lastActivity: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastMessage: messageText,
+                    lastMessageBy: userData.name || currentUser.displayName
+                });
+
                 messageInput.value = '';
+                messageInput.focus();
             } catch (error) {
-                showNotification('Failed to send message', 'error');
+                console.error('Error sending message:', error);
+                showNotification('Failed to send message: ' + error.message, 'error');
             }
         }
 
@@ -1061,6 +1196,10 @@
                     return;
                 }
 
+                // Get current user data
+                const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+                const currentUserData = currentUserDoc.data();
+
                 await db.collection('friendRequests').add({
                     from: currentUser.uid,
                     to: targetUserId,
@@ -1068,9 +1207,20 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
+                // Send notification to target user
+                await db.collection('notifications').add({
+                    userId: targetUserId,
+                    type: 'friend_request',
+                    title: 'New Friend Request',
+                    message: `${currentUserData.name || currentUserData.username} sent you a friend request`,
+                    read: false,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
                 showNotification('Friend request sent!', 'success');
                 closeModal('addFriendModal');
             } catch (error) {
+                console.error('Error sending friend request:', error);
                 showNotification('Error sending friend request', 'error');
             }
         }
@@ -1155,9 +1305,25 @@
                     status: 'accepted'
                 });
 
+                // Get current user data for notification
+                const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+                const currentUserData = currentUserDoc.data();
+
+                // Send notification to the friend requester
+                await db.collection('notifications').add({
+                    userId: fromUserId,
+                    type: 'friend_request_accepted',
+                    title: 'Friend Request Accepted!',
+                    message: `${currentUserData.name || currentUserData.username} accepted your friend request`,
+                    read: false,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
                 showNotification('Friend request accepted!', 'success');
                 loadFriends();
+                loadNotifications(); // Refresh notifications
             } catch (error) {
+                console.error('Error accepting friend request:', error);
                 showNotification('Error accepting friend request', 'error');
             }
         }
@@ -1221,6 +1387,84 @@
             }, 3000);
         }
 
+        // Notification Functions
+        async function loadNotifications() {
+            if (!currentUser) return;
+
+            try {
+                const notificationsSnapshot = await db.collection('notifications')
+                    .where('userId', '==', currentUser.uid)
+                    .orderBy('timestamp', 'desc')
+                    .limit(10)
+                    .get();
+
+                const notificationsContainer = document.getElementById('notifications');
+                notificationsContainer.innerHTML = '';
+
+                if (notificationsSnapshot.empty) {
+                    notificationsContainer.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 10px;">No notifications</div>';
+                    return;
+                }
+
+                notificationsSnapshot.forEach((doc) => {
+                    const notification = doc.data();
+                    const notificationElement = document.createElement('div');
+                    notificationElement.className = 'friend-request';
+                    notificationElement.style.background = notification.read ? 'rgba(255,255,255,0.05)' : 'rgba(74,185,255,0.2)';
+                    
+                    const timestamp = notification.timestamp ? 
+                        new Date(notification.timestamp.toDate()).toLocaleDateString() : 
+                        'Just now';
+                    
+                    notificationElement.innerHTML = `
+                        <div>
+                            <strong>${notification.title}</strong>
+                            <div style="font-size: 12px; opacity: 0.8;">${notification.message}</div>
+                            <div style="font-size: 11px; opacity: 0.6; margin-top: 5px;">${timestamp}</div>
+                        </div>
+                        ${!notification.read ? `
+                            <button class="btn" onclick="markNotificationRead('${doc.id}')" style="padding: 5px 10px; font-size: 12px;">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        ` : ''}
+                    `;
+                    
+                    notificationsContainer.appendChild(notificationElement);
+                });
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+            }
+        }
+
+        async function markNotificationRead(notificationId) {
+            try {
+                await db.collection('notifications').doc(notificationId).update({
+                    read: true
+                });
+                loadNotifications();
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+            }
+        }
+
+        // Real-time notification listener
+        function setupNotificationListener() {
+            if (!currentUser) return;
+
+            db.collection('notifications')
+                .where('userId', '==', currentUser.uid)
+                .where('read', '==', false)
+                .onSnapshot((snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === 'added') {
+                            const notification = change.doc.data();
+                            showNotification(notification.message, 'success');
+                            loadNotifications(); // Refresh the notifications panel
+                        }
+                    });
+                });
+        }
+
         // Initialize app
         document.addEventListener('DOMContentLoaded', () => {
             // Close modals when clicking outside
@@ -1233,5 +1477,5 @@
             });
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9687174f572b54e0',t:'MTc1NDA2OTcxNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9687240e655359e8',t:'MTc1NDA3MDIzOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
