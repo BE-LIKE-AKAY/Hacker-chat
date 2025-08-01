@@ -514,7 +514,8 @@
 
             <!-- Rooms Tab -->
             <div id="roomsTab" class="tab-content active">
-                <button class="btn" onclick="showCreateRoom()" style="width: 100%; margin-bottom: 15px;">+ CREATE ROOM</button>
+                <button class="btn" onclick="showCreateRoom()" style="width: 100%; margin-bottom: 10px;">+ CREATE ROOM</button>
+                <button class="btn btn-secondary" onclick="showJoinRoom()" style="width: 100%; margin-bottom: 15px;">🔑 JOIN ROOM</button>
                 <div id="roomsList"></div>
             </div>
 
@@ -654,18 +655,45 @@
                     <option value="private">Private (Invite Only)</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label>Room Code (Optional - for private rooms):</label>
+                <input type="text" id="roomCode" placeholder="Enter custom room code or leave blank for auto-generated">
+            </div>
             <button class="btn" onclick="createRoom()">CREATE ROOM</button>
         </div>
     </div>
 
-    <!-- Room Join Request Modal -->
-    <div id="joinRequestModal" class="modal">
+    <!-- Join Room Modal -->
+    <div id="joinRoomModal" class="modal">
         <div class="modal-content">
-            <h3>🔐 JOIN REQUEST</h3>
-            <p id="joinRequestMessage"></p>
-            <div style="margin-top: 20px;">
-                <button class="btn" onclick="approveJoinRequest()">APPROVE</button>
-                <button class="btn btn-secondary" onclick="denyJoinRequest()">DENY</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>🔑 JOIN ROOM</h3>
+                <button class="btn btn-secondary" onclick="closeModal('joinRoomModal')">✕</button>
+            </div>
+            <div class="form-group">
+                <label>Room Code:</label>
+                <input type="text" id="joinRoomCode" placeholder="Enter room code">
+            </div>
+            <button class="btn" onclick="joinRoomByCode()">JOIN ROOM</button>
+        </div>
+    </div>
+
+    <!-- Share Room Modal -->
+    <div id="shareRoomModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>📤 SHARE ROOM</h3>
+                <button class="btn btn-secondary" onclick="closeModal('shareRoomModal')">✕</button>
+            </div>
+            <div class="form-group">
+                <label>Room Code:</label>
+                <input type="text" id="shareRoomCode" readonly style="background: rgba(0,255,65,0.1);">
+                <button class="btn btn-secondary" onclick="copyRoomCode()" style="margin-top: 10px; width: 100%;">📋 COPY CODE</button>
+            </div>
+            <div class="form-group">
+                <label>Invite by Username:</label>
+                <input type="text" id="inviteUsername" placeholder="Enter username to invite">
+                <button class="btn" onclick="inviteUserToRoom()" style="margin-top: 10px; width: 100%;">📨 SEND INVITE</button>
             </div>
         </div>
     </div>
@@ -856,6 +884,7 @@
             const name = document.getElementById('roomName').value;
             const description = document.getElementById('roomDescription').value;
             const type = document.getElementById('roomType').value;
+            const customCode = document.getElementById('roomCode').value.trim();
 
             if (!name) {
                 showNotification('Please enter room name', 'error');
@@ -868,8 +897,27 @@
             }
 
             try {
+                // Generate room code
+                let roomCode;
+                if (customCode) {
+                    // Check if custom code already exists
+                    const codeCheck = await database.ref('roomCodes/' + customCode).once('value');
+                    if (codeCheck.exists()) {
+                        showNotification('Room code already exists. Please choose another.', 'error');
+                        return;
+                    }
+                    roomCode = customCode;
+                } else {
+                    // Generate random 6-character code
+                    roomCode = Math.random().toString(36).substr(2, 6).toUpperCase();
+                }
+
                 // Generate a unique room ID
                 const roomId = 'room_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                
+                // Get current user data
+                const currentUserSnapshot = await database.ref('users/' + currentUser.uid).once('value');
+                const currentUserData = currentUserSnapshot.val();
                 
                 // Create room data
                 const roomData = {
@@ -878,6 +926,7 @@
                     type: type,
                     creator: currentUser.uid,
                     createdAt: Date.now(),
+                    roomCode: roomCode,
                     members: {}
                 };
                 
@@ -885,26 +934,31 @@
                 roomData.members[currentUser.uid] = {
                     joinedAt: Date.now(),
                     role: 'admin',
-                    username: currentUser.displayName || 'Admin'
+                    username: currentUserData.username
                 };
 
                 // Create the room
                 await database.ref('rooms/' + roomId).set(roomData);
 
+                // Map room code to room ID
+                await database.ref('roomCodes/' + roomCode).set(roomId);
+
                 // Add to user's rooms
                 await database.ref('userRooms/' + currentUser.uid + '/' + roomId).set({
                     joinedAt: Date.now(),
                     timeSpent: 0,
-                    roomName: name
+                    roomName: name,
+                    roomCode: roomCode
                 });
 
                 // Clear form
                 document.getElementById('roomName').value = '';
                 document.getElementById('roomDescription').value = '';
                 document.getElementById('roomType').value = 'public';
+                document.getElementById('roomCode').value = '';
 
                 closeModal('createRoomModal');
-                showNotification('Room created successfully!', 'success');
+                showNotification(`Room created! Code: ${roomCode}`, 'success');
                 loadRooms();
             } catch (error) {
                 console.error('Room creation error:', error);
@@ -928,21 +982,149 @@
                 if (room) {
                     const roomElement = document.createElement('div');
                     roomElement.className = 'room-item';
-                    roomElement.onclick = () => joinRoom(roomId);
                     
                     const memberCount = Object.keys(room.members || {}).length;
                     const joinDate = new Date(userRooms[roomId].joinedAt).toLocaleDateString();
+                    const isCreator = room.creator === currentUser.uid;
                     
                     roomElement.innerHTML = `
-                        <div><strong>🏠 ${room.name}</strong></div>
-                        <div style="font-size: 0.8em; opacity: 0.7;">${room.description || 'No description'}</div>
-                        <div class="room-stats">
-                            👥 ${memberCount} members | 📅 Joined: ${joinDate}
+                        <div onclick="joinRoom('${roomId}')" style="cursor: pointer;">
+                            <div><strong>🏠 ${room.name}</strong> ${room.type === 'private' ? '🔒' : '🌐'}</div>
+                            <div style="font-size: 0.8em; opacity: 0.7;">${room.description || 'No description'}</div>
+                            <div class="room-stats">
+                                👥 ${memberCount} members | 📅 Joined: ${joinDate}
+                                ${room.roomCode ? `| 🔑 Code: ${room.roomCode}` : ''}
+                            </div>
                         </div>
+                        ${isCreator ? `<div style="margin-top: 8px;">
+                            <button class="btn btn-secondary" onclick="shareRoom('${roomId}', '${room.roomCode}')" style="font-size: 0.7em; padding: 4px 8px;">📤 Share</button>
+                        </div>` : ''}
                     `;
                     
                     roomsList.appendChild(roomElement);
                 }
+            }
+        }
+
+        function showJoinRoom() {
+            document.getElementById('joinRoomModal').style.display = 'block';
+        }
+
+        async function joinRoomByCode() {
+            const roomCode = document.getElementById('joinRoomCode').value.trim().toUpperCase();
+            
+            if (!roomCode) {
+                showNotification('Please enter room code', 'error');
+                return;
+            }
+
+            try {
+                // Get room ID from code
+                const roomIdSnapshot = await database.ref('roomCodes/' + roomCode).once('value');
+                if (!roomIdSnapshot.exists()) {
+                    showNotification('Invalid room code', 'error');
+                    return;
+                }
+
+                const roomId = roomIdSnapshot.val();
+                const roomSnapshot = await database.ref('rooms/' + roomId).once('value');
+                const room = roomSnapshot.val();
+
+                if (!room) {
+                    showNotification('Room not found', 'error');
+                    return;
+                }
+
+                // Check if already a member
+                if (room.members && room.members[currentUser.uid]) {
+                    showNotification('You are already a member of this room', 'error');
+                    return;
+                }
+
+                // Get current user data
+                const currentUserSnapshot = await database.ref('users/' + currentUser.uid).once('value');
+                const currentUserData = currentUserSnapshot.val();
+
+                // Add user to room
+                await database.ref('rooms/' + roomId + '/members/' + currentUser.uid).set({
+                    joinedAt: Date.now(),
+                    role: 'member',
+                    username: currentUserData.username
+                });
+
+                // Add room to user's rooms
+                await database.ref('userRooms/' + currentUser.uid + '/' + roomId).set({
+                    joinedAt: Date.now(),
+                    timeSpent: 0,
+                    roomName: room.name,
+                    roomCode: roomCode
+                });
+
+                document.getElementById('joinRoomCode').value = '';
+                closeModal('joinRoomModal');
+                showNotification(`Joined room: ${room.name}`, 'success');
+                loadRooms();
+
+            } catch (error) {
+                console.error('Join room error:', error);
+                showNotification('Failed to join room: ' + error.message, 'error');
+            }
+        }
+
+        function shareRoom(roomId, roomCode) {
+            document.getElementById('shareRoomCode').value = roomCode;
+            document.getElementById('shareRoomModal').style.display = 'block';
+            
+            // Store current room for sharing
+            window.currentSharingRoom = roomId;
+        }
+
+        function copyRoomCode() {
+            const roomCode = document.getElementById('shareRoomCode');
+            roomCode.select();
+            document.execCommand('copy');
+            showNotification('Room code copied to clipboard!', 'success');
+        }
+
+        async function inviteUserToRoom() {
+            const username = document.getElementById('inviteUsername').value.trim();
+            
+            if (!username) {
+                showNotification('Please enter username', 'error');
+                return;
+            }
+
+            try {
+                // Get user ID from username
+                const userIdSnapshot = await database.ref('usernames/' + username).once('value');
+                if (!userIdSnapshot.exists()) {
+                    showNotification('User not found', 'error');
+                    return;
+                }
+
+                const userId = userIdSnapshot.val();
+                const roomId = window.currentSharingRoom;
+
+                // Get room data
+                const roomSnapshot = await database.ref('rooms/' + roomId).once('value');
+                const room = roomSnapshot.val();
+
+                // Send room invitation
+                await database.ref('roomInvitations/' + userId + '/' + roomId).set({
+                    roomName: room.name,
+                    roomCode: room.roomCode,
+                    invitedBy: currentUser.uid,
+                    invitedByUsername: (await database.ref('users/' + currentUser.uid).once('value')).val().username,
+                    timestamp: Date.now(),
+                    status: 'pending'
+                });
+
+                document.getElementById('inviteUsername').value = '';
+                showNotification(`Invitation sent to ${username}`, 'success');
+
+            } catch (error) {
+                console.error('Invite error:', error);
+                showNotification('Failed to send invitation: ' + error.message, 'error');
             }
         }
 
@@ -1065,63 +1247,76 @@
             }
             
             try {
-                const usersSnapshot = await database.ref('users').once('value');
-                const users = usersSnapshot.val() || {};
+                // Search by username in the usernames index
+                const usernamesSnapshot = await database.ref('usernames').once('value');
+                const usernames = usernamesSnapshot.val() || {};
                 
                 // Get current friends to avoid showing them in search
                 const friendsSnapshot = await database.ref('friends/' + currentUser.uid).once('value');
                 const friends = friendsSnapshot.val() || {};
                 
                 // Get pending friend requests to show status
-                const sentRequestsSnapshot = await database.ref('friendRequests').once('value');
-                const allRequests = sentRequestsSnapshot.val() || {};
+                const myRequestsSnapshot = await database.ref('friendRequests/' + currentUser.uid).once('value');
+                const myRequests = myRequestsSnapshot.val() || {};
                 
                 searchResults.innerHTML = '<h5 style="margin-bottom: 10px;">🔍 SEARCH RESULTS</h5>';
                 
                 let foundUsers = false;
                 
-                Object.keys(users).forEach(userId => {
-                    const user = users[userId];
-                    if (userId !== currentUser.uid && 
-                        user.username && 
-                        user.username.toLowerCase().includes(query) &&
-                        !friends[userId]) { // Don't show existing friends
+                // Search through usernames
+                for (const username in usernames) {
+                    if (username.toLowerCase().includes(query)) {
+                        const userId = usernames[username];
                         
-                        foundUsers = true;
-                        const resultElement = document.createElement('div');
-                        resultElement.className = 'user-search-result';
-                        
-                        // Check if friend request already sent
-                        const requestSent = allRequests[userId] && allRequests[userId][currentUser.uid] && 
-                                          allRequests[userId][currentUser.uid].status === 'pending';
-                        
-                        const onlineIndicator = user.online ? 
-                            '<span class="online-indicator"></span>' : 
-                            '<span class="offline-indicator"></span>';
-                        
-                        resultElement.innerHTML = `
-                            <div>${onlineIndicator}<strong>👤 ${user.username}</strong></div>
-                            <div style="font-size: 0.8em; opacity: 0.7; margin: 3px 0;">
-                                ${user.age} years • ${user.gender}
-                            </div>
-                            <div style="margin-top: 8px;">
-                                ${requestSent ? 
-                                    '<button class="btn btn-secondary" disabled style="font-size: 0.8em; padding: 6px 12px;">📤 Request Sent</button>' :
-                                    `<button class="btn" onclick="sendFriendRequest('${userId}')" style="font-size: 0.8em; padding: 6px 12px;">➕ Add Friend</button>`
+                        if (userId !== currentUser.uid && !friends[userId]) {
+                            // Get user details
+                            const userSnapshot = await database.ref('users/' + userId).once('value');
+                            const user = userSnapshot.val();
+                            
+                            if (user) {
+                                foundUsers = true;
+                                const resultElement = document.createElement('div');
+                                resultElement.className = 'user-search-result';
+                                
+                                // Check if friend request already sent or received
+                                const requestSent = myRequests[userId] && myRequests[userId].status === 'sent';
+                                const requestReceived = myRequests[userId] && myRequests[userId].status === 'received';
+                                
+                                const onlineIndicator = user.online ? 
+                                    '<span class="online-indicator"></span>' : 
+                                    '<span class="offline-indicator"></span>';
+                                
+                                let buttonHtml = '';
+                                if (requestSent) {
+                                    buttonHtml = '<button class="btn btn-secondary" disabled style="font-size: 0.8em; padding: 6px 12px;">📤 Request Sent</button>';
+                                } else if (requestReceived) {
+                                    buttonHtml = '<button class="btn" onclick="acceptFriendRequest(\'' + userId + '\')" style="font-size: 0.8em; padding: 6px 12px;">✓ Accept Request</button>';
+                                } else {
+                                    buttonHtml = '<button class="btn" onclick="sendFriendRequest(\'' + userId + '\')" style="font-size: 0.8em; padding: 6px 12px;">➕ Add Friend</button>';
                                 }
-                            </div>
-                        `;
-                        
-                        searchResults.appendChild(resultElement);
+                                
+                                resultElement.innerHTML = `
+                                    <div>${onlineIndicator}<strong>👤 ${user.username}</strong></div>
+                                    <div style="font-size: 0.8em; opacity: 0.7; margin: 3px 0;">
+                                        ${user.age} years • ${user.gender}
+                                    </div>
+                                    <div style="margin-top: 8px;">
+                                        ${buttonHtml}
+                                    </div>
+                                `;
+                                
+                                searchResults.appendChild(resultElement);
+                            }
+                        }
                     }
-                });
+                }
                 
                 if (!foundUsers) {
                     searchResults.innerHTML += '<div style="text-align: center; opacity: 0.5; padding: 20px;">No users found matching "' + query + '"</div>';
                 }
             } catch (error) {
                 console.error('Search error:', error);
-                searchResults.innerHTML = '<div style="color: #ff4444; padding: 10px;">Search failed. Please try again.</div>';
+                searchResults.innerHTML = '<div style="color: #ff4444; padding: 10px;">Search failed: ' + error.message + '</div>';
             }
         }
 
@@ -1148,26 +1343,24 @@
                     return;
                 }
                 
-                // Check if request already sent
-                const requestCheck = await database.ref('friendRequests/' + userId + '/' + currentUser.uid).once('value');
-                if (requestCheck.exists() && requestCheck.val().status === 'pending') {
-                    showNotification('Friend request already sent', 'error');
-                    return;
-                }
+                // Get current user data
+                const currentUserSnapshot = await database.ref('users/' + currentUser.uid).once('value');
+                const currentUserData = currentUserSnapshot.val();
                 
-                // Send friend request
+                // Send friend request to recipient
                 await database.ref('friendRequests/' + userId + '/' + currentUser.uid).set({
                     timestamp: Date.now(),
-                    status: 'pending',
-                    senderUsername: currentUser.displayName || 'Unknown'
+                    status: 'received',
+                    senderUsername: currentUserData.username,
+                    senderAge: currentUserData.age,
+                    senderGender: currentUserData.gender
                 });
                 
-                // Send notification to recipient
-                await database.ref('notifications/' + userId).push({
-                    type: 'friend_request',
-                    from: currentUser.uid,
+                // Mark as sent in sender's requests
+                await database.ref('friendRequests/' + currentUser.uid + '/' + userId).set({
                     timestamp: Date.now(),
-                    message: 'New friend request received'
+                    status: 'sent',
+                    recipientUsername: (await database.ref('users/' + userId).once('value')).val().username
                 });
                 
                 showNotification('Friend request sent successfully!', 'success');
@@ -1194,27 +1387,24 @@
                 let hasRequests = false;
                 
                 for (const senderId in requests) {
-                    if (requests[senderId].status === 'pending') {
+                    if (requests[senderId].status === 'received') {
                         hasRequests = true;
-                        const senderSnapshot = await database.ref('users/' + senderId).once('value');
-                        const sender = senderSnapshot.val();
+                        const requestData = requests[senderId];
                         
-                        if (sender) {
-                            const requestElement = document.createElement('div');
-                            requestElement.className = 'friend-request';
-                            
-                            requestElement.innerHTML = `
-                                <div><strong>👤 ${sender.username}</strong></div>
-                                <div style="font-size: 0.8em; margin: 5px 0; opacity: 0.7;">${sender.age} years • ${sender.gender}</div>
-                                <div style="font-size: 0.8em; margin: 5px 0;">📩 Friend Request</div>
-                                <div style="margin-top: 10px;">
-                                    <button class="btn" onclick="acceptFriendRequest('${senderId}')" style="margin-right: 5px; font-size: 0.8em; padding: 8px 12px;">✓ Accept</button>
-                                    <button class="btn btn-secondary" onclick="declineFriendRequest('${senderId}')" style="font-size: 0.8em; padding: 8px 12px;">✗ Decline</button>
-                                </div>
-                            `;
-                            
-                            friendRequests.appendChild(requestElement);
-                        }
+                        const requestElement = document.createElement('div');
+                        requestElement.className = 'friend-request';
+                        
+                        requestElement.innerHTML = `
+                            <div><strong>👤 ${requestData.senderUsername}</strong></div>
+                            <div style="font-size: 0.8em; margin: 5px 0; opacity: 0.7;">${requestData.senderAge} years • ${requestData.senderGender}</div>
+                            <div style="font-size: 0.8em; margin: 5px 0;">📩 Friend Request</div>
+                            <div style="margin-top: 10px;">
+                                <button class="btn" onclick="acceptFriendRequest('${senderId}')" style="margin-right: 5px; font-size: 0.8em; padding: 8px 12px;">✓ Accept</button>
+                                <button class="btn btn-secondary" onclick="declineFriendRequest('${senderId}')" style="font-size: 0.8em; padding: 8px 12px;">✗ Decline</button>
+                            </div>
+                        `;
+                        
+                        friendRequests.appendChild(requestElement);
                     }
                 }
                 
@@ -1223,6 +1413,7 @@
                 }
             } catch (error) {
                 console.error('Error loading friend requests:', error);
+                friendRequests.innerHTML = '<div style="color: #ff4444; padding: 10px;">Failed to load friend requests</div>';
             }
         }
 
@@ -1624,5 +1815,5 @@
             canvas.height = window.innerHeight;
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'968398b3c541fadc',t:'MTc1NDAzMzA3My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9683d510c4d88e80',t:'MTc1NDAzNTU0Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
