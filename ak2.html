@@ -3,746 +3,1104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Chat App</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>NexusChat - Advanced Messaging Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
     <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --accent: #ec4899;
+            --dark: #0f172a;
+            --darker: #020617;
+            --light: #f1f5f9;
+            --gray: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            
+            --sidebar-width: 280px;
+            --header-height: 70px;
+            --border-radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #fff;
-            overflow-x: hidden;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .auth-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        }
-
-        .auth-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 40px;
-            width: 400px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            animation: slideInUp 0.6s ease-out;
-        }
-
-        @keyframes slideInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .auth-title {
-            text-align: center;
-            font-size: 2.5rem;
-            margin-bottom: 30px;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #e0e0e0;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .form-control:focus {
-            outline: none;
-            background: rgba(255, 255, 255, 0.2);
-            border-color: #4ecdc4;
-            box-shadow: 0 0 20px rgba(78, 205, 196, 0.3);
-        }
-
-        .form-control::placeholder {
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .btn {
-            padding: 15px 30px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-        }
-
-        .btn-primary {
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-            color: white;
-            width: 100%;
-            margin-bottom: 15px;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: #4ecdc4;
-            border: 2px solid #4ecdc4;
-        }
-
-        .btn-secondary:hover {
-            background: #4ecdc4;
-            color: #fff;
-        }
-
-        .auth-links {
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .auth-links a {
-            color: #4ecdc4;
-            text-decoration: none;
-            margin: 0 10px;
-            transition: color 0.3s ease;
-        }
-
-        .auth-links a:hover {
-            color: #ff6b6b;
-        }
-
-        .dashboard {
-            display: none;
-            grid-template-columns: 300px 1fr 300px;
-            gap: 20px;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--darker), var(--dark));
+            color: var(--light);
             height: 100vh;
-            padding: 20px;
+            overflow: hidden;
+            position: relative;
         }
-
-        .sidebar {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            overflow-y: auto;
-        }
-
-        .main-chat {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chat-header {
-            padding: 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            display: flex;
-            justify-content: between;
-            align-items: center;
-        }
-
-        .chat-messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            max-height: calc(100vh - 200px);
-        }
-
-        .message {
-            margin-bottom: 15px;
-            padding: 12px 16px;
-            border-radius: 15px;
-            max-width: 70%;
-            animation: fadeInUp 0.3s ease;
-        }
-
-        .message.own {
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-            margin-left: auto;
-            text-align: right;
-        }
-
-        .message.other {
-            background: rgba(255, 255, 255, 0.1);
-            margin-right: auto;
-        }
-
-        .message-info {
-            font-size: 12px;
-            opacity: 0.7;
-            margin-top: 5px;
-        }
-
-        .chat-input {
-            padding: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            display: flex;
-            gap: 10px;
-        }
-
-        .chat-input input {
-            flex: 1;
-            padding: 15px;
-            border: none;
-            border-radius: 25px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            font-size: 16px;
-        }
-
-        .chat-input input:focus {
-            outline: none;
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .chat-input button {
-            padding: 15px 20px;
-            border: none;
-            border-radius: 25px;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-            color: white;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-
-        .chat-input button:hover {
-            transform: scale(1.05);
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            margin-bottom: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-        }
-
-        .profile-pic {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            font-size: 20px;
-        }
-
-        .online-status {
-            width: 12px;
-            height: 12px;
-            background: #4ecdc4;
-            border-radius: 50%;
+        
+        body::before {
+            content: '';
             position: absolute;
-            bottom: 2px;
-            right: 2px;
-            border: 2px solid #fff;
-        }
-
-        .room-list {
-            margin-bottom: 30px;
-        }
-
-        .room-item {
-            padding: 15px;
-            margin-bottom: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 1px solid transparent;
-        }
-
-        .room-item:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: #4ecdc4;
-            transform: translateX(5px);
-        }
-
-        .room-item.active {
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-        }
-
-        .friend-list {
-            margin-top: 20px;
-        }
-
-        .friend-item {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            margin-bottom: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .friend-item:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 20%);
+            z-index: -1;
         }
-
-        .modal-content {
-            background: rgba(255, 255, 255, 0.1);
+        
+        /* Layout */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: rgba(15, 23, 42, 0.7);
             backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            width: 400px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            animation: zoomIn 0.3s ease;
+            border-right: 1px solid rgba(148, 163, 184, 0.1);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+            z-index: 10;
         }
-
-        @keyframes zoomIn {
-            from {
-                opacity: 0;
-                transform: scale(0.8);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
         }
-
-        .emoji-reactions {
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--light);
+        }
+        
+        .logo-icon {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Navigation */
+        .nav-section {
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        .nav-title {
+            padding: 0 20px 10px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--gray);
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            gap: 12px;
+            color: var(--light);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            border-left: 3px solid transparent;
+        }
+        
+        .nav-item:hover {
+            background: rgba(99, 102, 241, 0.1);
+            border-left-color: var(--primary);
+        }
+        
+        .nav-item.active {
+            background: rgba(99, 102, 241, 0.15);
+            border-left-color: var(--primary);
+        }
+        
+        .nav-item i {
+            width: 24px;
+            text-align: center;
+            font-size: 18px;
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        /* Header */
+        .header {
+            height: var(--header-height);
+            padding: 0 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            z-index: 5;
+        }
+        
+        .search-container {
+            position: relative;
+            width: 300px;
+        }
+        
+        .search-container input {
+            width: 100%;
+            padding: 12px 20px 12px 45px;
+            border-radius: 50px;
+            background: rgba(2, 6, 23, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: var(--light);
+            font-size: 14px;
+            transition: var(--transition);
+        }
+        
+        .search-container input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+        }
+        
+        .search-container i {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+        }
+        
+        .user-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+        
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            position: relative;
+        }
+        
+        .online-status {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--success);
+            border: 2px solid var(--dark);
+            border-radius: 50%;
+            bottom: -2px;
+            right: -2px;
+        }
+        
+        /* Chat Container */
+        .chat-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        /* Chat List */
+        .chat-list {
+            width: 350px;
+            border-right: 1px solid rgba(148, 163, 184, 0.1);
+            background: rgba(15, 23, 42, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-list-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .chat-list-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .chat-filter {
+            display: flex;
+            gap: 8px;
+            padding: 0 20px 15px;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            background: rgba(2, 6, 23, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 50px;
+            color: var(--light);
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .filter-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .chats {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 10px;
+        }
+        
+        .chat-item {
+            display: flex;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 5px;
+        }
+        
+        .chat-item:hover {
+            background: rgba(99, 102, 241, 0.1);
+        }
+        
+        .chat-item.active {
+            background: rgba(99, 102, 241, 0.15);
+        }
+        
+        .chat-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 15px;
+            position: relative;
+        }
+        
+        .chat-info {
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .chat-info-top {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .chat-name {
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .chat-time {
+            font-size: 12px;
+            color: var(--gray);
+        }
+        
+        .chat-preview {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: var(--gray);
+        }
+        
+        .chat-preview i {
+            margin-left: 5px;
+            color: var(--primary);
+        }
+        
+        .unread-count {
+            background: var(--primary);
+            color: white;
+            font-size: 12px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 5px;
+        }
+        
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(2, 6, 23, 0.4);
+            overflow: hidden;
+        }
+        
+        .chat-header {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        .chat-partner {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .chat-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .chat-status {
+            font-size: 13px;
+            color: var(--success);
+            margin-top: 3px;
+        }
+        
+        .chat-actions {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(2, 6, 23, 0.5);
+            color: var(--light);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .action-btn:hover {
+            background: var(--primary);
+        }
+        
+        /* Messages */
+        .messages-container {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .message {
+            max-width: 70%;
+            padding: 15px;
+            border-radius: 18px;
+            margin-bottom: 20px;
+            position: relative;
+            animation: messageAppear 0.3s ease-out;
+            word-wrap: break-word;
+        }
+        
+        @keyframes messageAppear {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .incoming {
+            background: rgba(15, 23, 42, 0.7);
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .outgoing {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 5px;
+        }
+        
+        .reactions {
+            position: absolute;
+            bottom: -15px;
+            right: 10px;
             display: flex;
             gap: 5px;
-            margin-top: 5px;
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 20px;
+            padding: 4px 8px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
         }
-
-        .emoji-btn {
-            background: none;
-            border: none;
+        
+        .reaction {
             font-size: 16px;
             cursor: pointer;
-            padding: 5px;
-            border-radius: 50%;
-            transition: transform 0.2s ease;
+            transition: transform 0.2s;
         }
-
-        .emoji-btn:hover {
+        
+        .reaction:hover {
             transform: scale(1.2);
-            background: rgba(255, 255, 255, 0.1);
         }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            z-index: 1001;
-            animation: slideInRight 0.3s ease;
+        
+        .message-status {
+            margin-left: 5px;
         }
-
-        @keyframes slideInRight {
-            from {
-                opacity: 0;
-                transform: translateX(100px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+        
+        /* Input Area */
+        .input-area {
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.7);
+            border-top: 1px solid rgba(148, 163, 184, 0.1);
         }
-
-        .search-bar {
-            width: 100%;
-            padding: 12px;
+        
+        .message-input-container {
+            display: flex;
+            align-items: center;
+            background: rgba(2, 6, 23, 0.5);
+            border-radius: 50px;
+            padding: 5px 5px 5px 20px;
+        }
+        
+        .message-input {
+            flex: 1;
+            background: transparent;
             border: none;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
+            color: var(--light);
+            font-size: 15px;
+            padding: 12px 0;
+        }
+        
+        .message-input:focus {
+            outline: none;
+        }
+        
+        .input-actions {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .input-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--light);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .input-btn:hover {
+            background: var(--primary);
+        }
+        
+        .send-btn {
+            background: var(--primary);
+            width: 45px;
+            height: 45px;
+        }
+        
+        .send-btn:hover {
+            background: var(--primary-dark);
+        }
+        
+        /* Auth Screens */
+        .auth-container {
+            display: flex;
+            height: 100vh;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .auth-card {
+            width: 100%;
+            max-width: 450px;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .auth-header {
+            padding: 30px 30px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        .auth-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .auth-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .auth-subtitle {
+            color: var(--gray);
+            font-size: 15px;
+        }
+        
+        .auth-body {
+            padding: 30px;
+        }
+        
+        .form-group {
             margin-bottom: 20px;
         }
-
-        .search-bar:focus {
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 14px;
+            background: rgba(2, 6, 23, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            color: var(--light);
+            font-size: 15px;
+            transition: var(--transition);
+        }
+        
+        .form-control:focus {
             outline: none;
-            background: rgba(255, 255, 255, 0.2);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
         }
-
-        .hidden {
-            display: none !important;
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: var(--transition);
         }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
         }
-
-        .typing-indicator {
-            display: none;
-            padding: 10px;
-            font-style: italic;
-            opacity: 0.7;
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
         }
-
-        .message-status {
-            font-size: 10px;
-            opacity: 0.6;
-            margin-top: 2px;
+        
+        .btn-google {
+            background: white;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
-
-        @media (max-width: 768px) {
-            .dashboard {
-                grid-template-columns: 1fr;
-                grid-template-rows: auto 1fr auto;
-            }
-            
+        
+        .auth-footer {
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid rgba(148, 163, 184, 0.1);
+            color: var(--gray);
+            font-size: 14px;
+        }
+        
+        .auth-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+        
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(148, 163, 184, 0.2);
+        }
+        
+        .divider-text {
+            padding: 0 15px;
+            color: var(--gray);
+            font-size: 14px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
             .sidebar {
-                order: 3;
-                height: auto;
+                transform: translateX(-100%);
+                position: absolute;
+                height: 100%;
             }
             
-            .main-chat {
-                order: 2;
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .chat-list {
+                width: 300px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .chat-list {
+                position: absolute;
+                left: 0;
+                top: 0;
+                height: 100%;
+                z-index: 20;
+                transform: translateX(-100%);
+                transition: var(--transition);
+            }
+            
+            .chat-list.active {
+                transform: translateX(0);
+            }
+            
+            .search-container {
+                width: 200px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Authentication Section -->
-    <div id="authSection" class="auth-container">
+    <!-- Authentication Screen -->
+    <div class="auth-container" id="authScreen">
         <div class="auth-card">
-            <!-- Sign In Form -->
-            <div id="signInForm">
-                <h2 class="auth-title">Welcome Back</h2>
-                <form id="signInFormElement">
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" class="form-control" id="signInEmail" placeholder="Enter your email" required>
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-comments"></i>
                     </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" class="form-control" id="signInPassword" placeholder="Enter your password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Sign In</button>
-                </form>
-                <div class="auth-links">
-                    <a href="#" onclick="showSignUp()">Create Account</a>
-                    <a href="#" onclick="showForgotPassword()">Forgot Password?</a>
+                    NexusChat
                 </div>
+                <h2 class="auth-title">Create Your Account</h2>
+                <p class="auth-subtitle">Join our community to start chatting securely</p>
             </div>
-
-            <!-- Sign Up Form -->
-            <div id="signUpForm" class="hidden">
-                <h2 class="auth-title">Join Us</h2>
-                <form id="signUpFormElement">
-                    <div class="form-group">
-                        <label>Full Name</label>
-                        <input type="text" class="form-control" id="signUpName" placeholder="Enter your name" required>
+            
+            <div class="auth-body">
+                <div class="form-group">
+                    <label for="fullName">Full Name</label>
+                    <input type="text" id="fullName" class="form-control" placeholder="Enter your full name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" class="form-control" placeholder="Choose a unique username">
+                </div>
+                
+                <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="age">Age</label>
+                        <input type="number" id="age" class="form-control" placeholder="Age">
                     </div>
-                    <div class="form-group">
-                        <label>Username</label>
-                        <input type="text" class="form-control" id="signUpUsername" placeholder="Choose a unique username" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Age</label>
-                        <input type="number" class="form-control" id="signUpAge" placeholder="Enter your age" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Gender</label>
-                        <select class="form-control" id="signUpGender" required>
+                    
+                    <div class="form-group" style="flex: 2;">
+                        <label for="gender">Gender</label>
+                        <select id="gender" class="form-control">
                             <option value="">Select Gender</option>
                             <option value="male">Male</option>
                             <option value="female">Female</option>
                             <option value="other">Other</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Mobile Number</label>
-                        <input type="tel" class="form-control" id="signUpMobile" placeholder="Enter your mobile number" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" class="form-control" id="signUpEmail" placeholder="Enter your email" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" class="form-control" id="signUpPassword" placeholder="Create a password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Create Account</button>
-                </form>
-                <div class="auth-links">
-                    <a href="#" onclick="showSignIn()">Already have an account?</a>
                 </div>
+                
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" class="form-control" placeholder="Enter your email">
+                </div>
+                
+                <div class="form-group">
+                    <label for="mobile">Mobile Number</label>
+                    <input type="tel" id="mobile" class="form-control" placeholder="Enter your mobile number">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" class="form-control" placeholder="Create a strong password">
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm your password">
+                </div>
+                
+                <button class="btn btn-primary" id="signupBtn">
+                    <i class="fas fa-user-plus"></i> Sign Up
+                </button>
+                
+                <div class="divider">
+                    <div class="divider-text">Or continue with</div>
+                </div>
+                
+                <button class="btn btn-google">
+                    <i class="fab fa-google"></i> Sign Up with Google
+                </button>
             </div>
-
-            <!-- Forgot Password Form -->
-            <div id="forgotPasswordForm" class="hidden">
-                <h2 class="auth-title">Reset Password</h2>
-                <form id="forgotPasswordFormElement">
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" class="form-control" id="forgotEmail" placeholder="Enter your email" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Send Reset Link</button>
-                </form>
-                <div class="auth-links">
-                    <a href="#" onclick="showSignIn()">Back to Sign In</a>
-                </div>
+            
+            <div class="auth-footer">
+                Already have an account? <a href="#" class="auth-link" id="loginLink">Sign In</a>
             </div>
         </div>
     </div>
-
-    <!-- Dashboard Section -->
-    <div id="dashboard" class="dashboard">
-        <!-- Left Sidebar -->
+    
+    <!-- Main App Container -->
+    <div class="app-container" id="appContainer" style="display: none;">
+        <!-- Sidebar -->
         <div class="sidebar">
-            <div class="user-profile">
-                <div class="profile-pic" id="userProfilePic">
-                    <i class="fas fa-user"></i>
-                </div>
-                <div>
-                    <div id="userName">User Name</div>
-                    <div style="font-size: 12px; opacity: 0.7;" id="userStatus">Online</div>
-                </div>
-            </div>
-
-            <input type="text" class="search-bar" id="roomSearch" placeholder="Search rooms...">
-            
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <button class="btn btn-secondary" onclick="showCreateRoomModal()" style="flex: 1; padding: 10px;">
-                    <i class="fas fa-plus"></i> Room
-                </button>
-                <button class="btn btn-secondary" onclick="showProfileModal()" style="flex: 1; padding: 10px;">
-                    <i class="fas fa-user-edit"></i> Profile
-                </button>
-            </div>
-
-            <div class="room-list">
-                <h3 style="margin-bottom: 15px;">Chat Rooms</h3>
-                <div id="roomsList"></div>
-            </div>
-        </div>
-
-        <!-- Main Chat Area -->
-        <div class="main-chat">
-            <div class="chat-header">
-                <div>
-                    <h3 id="currentRoomName">Select a room to start chatting</h3>
-                    <div id="roomInfo" style="font-size: 12px; opacity: 0.7;"></div>
-                </div>
-                <div>
-                    <button class="btn btn-secondary" onclick="showRoomSettingsModal()" id="roomSettingsBtn" style="display: none;">
-                        <i class="fas fa-cog"></i>
-                    </button>
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    NexusChat
                 </div>
             </div>
             
-            <div class="chat-messages" id="chatMessages">
-                <div style="text-align: center; opacity: 0.7; margin-top: 50px;">
-                    <i class="fas fa-comments" style="font-size: 48px; margin-bottom: 20px;"></i>
-                    <p>Welcome to Advanced Chat App!</p>
-                    <p>Select a room or create one to start messaging.</p>
+            <div class="nav-section">
+                <div class="nav-title">Main</div>
+                <a href="#" class="nav-item active">
+                    <i class="fas fa-inbox"></i>
+                    Messages
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-user-friends"></i>
+                    Friends
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-users"></i>
+                    Groups
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-bell"></i>
+                    Notifications
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-title">Chat Rooms</div>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-hashtag"></i>
+                    General
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-gamepad"></i>
+                    Gaming
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-music"></i>
+                    Music
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-plus-circle"></i>
+                    Create Room
+                </a>
+            </div>
+            
+            <div class="nav-section" style="margin-top: auto; border-top: 1px solid rgba(148, 163, 184, 0.1);">
+                <a href="#" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+                <a href="#" class="nav-item" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search messages, friends, or rooms">
+                </div>
+                
+                <div class="user-actions">
+                    <div class="action-btn">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <div class="action-btn">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <div class="user-profile">
+                        <div class="avatar">
+                            <span>JD</span>
+                            <div class="online-status"></div>
+                        </div>
+                        <div>
+                            <div>John Doe</div>
+                            <div style="font-size: 12px; color: var(--success);">Online</div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <div class="typing-indicator" id="typingIndicator">
-                Someone is typing...
-            </div>
-            
-            <div class="chat-input">
-                <input type="text" id="messageInput" placeholder="Type your message..." disabled>
-                <button id="sendBtn" onclick="sendMessage()" disabled>
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Right Sidebar -->
-        <div class="sidebar">
-            <input type="text" class="search-bar" id="friendSearch" placeholder="Search users...">
-            
-            <button class="btn btn-secondary" onclick="showAddFriendModal()" style="width: 100%; margin-bottom: 20px;">
-                <i class="fas fa-user-plus"></i> Add Friend
-            </button>
-
-            <div class="friend-list">
-                <h3 style="margin-bottom: 15px;">Friends</h3>
-                <div id="friendsList"></div>
-            </div>
-
-            <div style="margin-top: 30px;">
-                <h3 style="margin-bottom: 15px;">Friend Requests</h3>
-                <div id="friendRequestsList"></div>
-            </div>
-
-            <div style="margin-top: 30px;">
-                <h3 style="margin-bottom: 15px;">Notifications</h3>
-                <div id="notificationsList"></div>
+            <!-- Chat Container -->
+            <div class="chat-container">
+                <!-- Chat List -->
+                <div class="chat-list">
+                    <div class="chat-list-header">
+                        <div class="chat-list-title">Recent Chats</div>
+                        <div class="action-btn">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-filter">
+                        <div class="filter-btn active">All</div>
+                        <div class="filter-btn">Friends</div>
+                        <div class="filter-btn">Groups</div>
+                        <div class="filter-btn">Unread</div>
+                    </div>
+                    
+                    <div class="chats">
+                        <div class="chat-item active">
+                            <div class="chat-avatar">
+                                <span>SG</span>
+                                <div class="online-status"></div>
+                            </div>
+                            <div class="chat-info">
+                                <div class="chat-info-top">
+                                    <div class="chat-name">Sarah Green</div>
+                                    <div class="chat-time">10:24 AM</div>
+                                </div>
+                                <div class="chat-preview">
+                                    <span>Looking forward to it!</span>
+                                    <i class="fas fa-check-double"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-item">
+                            <div class="chat-avatar">
+                                <span>DT</span>
+                            </div>
+                            <div class="chat-info">
+                                <div class="chat-info-top">
+                                    <div class="chat-name">Design Team</div>
+                                    <div class="chat-time">9:45 AM</div>
+                                </div>
+                                <div class="chat-preview">
+                                    <span>Mike: Let's review the new mockups</span>
+                                    <div class="unread-count">3</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-item">
+                            <div class="chat-avatar">
+                                <span>MJ</span>
+                                <div class="online-status"></div>
+                            </div>
+                            <div class="chat-info">
+                                <div class="chat-info-top">
+                                    <div class="chat-name">Michael Johnson</div>
+                                    <div class="chat-time">Yesterday</div>
+                                </div>
+                                <div class="chat-preview">
+                                    <span>Thanks for your help!</span>
+                                    <i class="fas fa-check-double"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-item">
+                            <div class="chat-avatar">
+                                <span>GP</span>
+                            </div>
+                            <div class="chat-info">
+                                <div class="chat-info-top">
+                                    <div class="chat-name">Gaming Party</div>
+                                    <div class="chat-time">Yesterday</div>
+                                </div>
+                                <div class="chat-preview">
+                                    <span>Alex: Tonight at 8 PM?</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-item">
+                            <div class="chat-avatar">
+                                <span>ER</span>
+                                <div class="online-status"></div>
+                            </div>
+                            <div class="chat-info">
+                                <div class="chat-info-top">
+                                    <div class="chat-name">Emma Roberts</div>
+                                    <div class="chat-time">Jun 12</div>
+                                </div>
+                                <div class="chat-preview">
+                                    <span>Did you watch the new episode?</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chat Area -->
+                <div class="chat-area">
+                    <div class="chat-header">
+                        <div class="chat-partner">
+                            <div class="avatar">
+                                <span>SG</span>
+                                <div class="online-status"></div>
+                            </div>
+                            <div>
+                                <div class="chat-title">Sarah Green</div>
+                                <div class="chat-status">Online - Typing...</div>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-actions">
+                            <div class="action-btn">
+                                <i class="fas fa-phone-alt"></i>
+                            </div>
+                            <div class="action-btn">
+                                <i class="fas fa-video"></i>
+                            </div>
+                            <div class="action-btn">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="messages-container" id="messagesContainer">
+                        <div class="message incoming">
+                            Hey John! How are you doing today?
+                            <div class="message-time">10:15 AM</div>
+                        </div>
+                        
+                        <div class="message outgoing">
+                            Hi Sarah! I'm doing great, thanks! Just finished the project we discussed.
+                            <div class="message-time">10:16 AM <i class="fas fa-check-double"></i></div>
+                        </div>
+                        
+                        <div class="message incoming">
+                            That's awesome! Can you share the files with me? I'd love to take a look.
+                            <div class="message-time">10:18 AM</div>
+                        </div>
+                        
+                        <div class="message outgoing">
+                            Sure thing! I'll send them over right now. Let me know what you think.
+                            <div class="message-time">10:20 AM <i class="fas fa-check-double"></i></div>
+                        </div>
+                        
+                        <div class="message incoming">
+                            Perfect, thanks! I have a meeting now but will review them this afternoon.
+                            <div class="message-time">10:22 AM</div>
+                        </div>
+                        
+                        <div class="message outgoing">
+                            Sounds good. Looking forward to your feedback!
+                            <div class="message-time">10:22 AM <i class="fas fa-check-double"></i></div>
+                            <div class="reactions">
+                                <span class="reaction">👍</span>
+                            </div>
+                        </div>
+                        
+                        <div class="message incoming">
+                            By the way, are you free this weekend? We're planning a small get-together.
+                            <div class="message-time">10:24 AM</div>
+                        </div>
+                    </div>
+                    
+                    <div class="input-area">
+                        <div class="message-input-container">
+                            <input type="text" class="message-input" placeholder="Type a message..." id="messageInput">
+                            <div class="input-actions">
+                                <div class="input-btn">
+                                    <i class="fas fa-smile"></i>
+                                </div>
+                                <div class="input-btn">
+                                    <i class="fas fa-paperclip"></i>
+                                </div>
+                                <div class="input-btn">
+                                    <i class="fas fa-camera"></i>
+                                </div>
+                                <div class="input-btn send-btn" id="sendBtn">
+                                    <i class="fas fa-paper-plane"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-
-    <!-- Modals -->
-    <!-- Create Room Modal -->
-    <div id="createRoomModal" class="modal">
-        <div class="modal-content">
-            <h3 style="margin-bottom: 20px;">Create New Room</h3>
-            <form id="createRoomForm">
-                <div class="form-group">
-                    <label>Room Name</label>
-                    <input type="text" class="form-control" id="roomName" required>
-                </div>
-                <div class="form-group">
-                    <label>Room Type</label>
-                    <select class="form-control" id="roomType" required>
-                        <option value="public">Public</option>
-                        <option value="private">Private</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea class="form-control" id="roomDescription" rows="3"></textarea>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Create Room</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('createRoomModal')" style="flex: 1;">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Profile Modal -->
-    <div id="profileModal" class="modal">
-        <div class="modal-content">
-            <h3 style="margin-bottom: 20px;">Edit Profile</h3>
-            <form id="profileForm">
-                <div class="form-group">
-                    <label>Profile Picture URL</label>
-                    <input type="url" class="form-control" id="profilePicUrl" placeholder="Enter image URL">
-                </div>
-                <div class="form-group">
-                    <label>Name</label>
-                    <input type="text" class="form-control" id="profileName" required>
-                </div>
-                <div class="form-group">
-                    <label>Age</label>
-                    <input type="number" class="form-control" id="profileAge" required>
-                </div>
-                <div class="form-group">
-                    <label>Gender</label>
-                    <select class="form-control" id="profileGender" required>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Update Profile</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('profileModal')" style="flex: 1;">Cancel</button>
-                </div>
-            </form>
-            <div style="margin-top: 20px; text-align: center;">
-                <button class="btn btn-secondary" onclick="signOut()">Sign Out</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Friend Modal -->
-    <div id="addFriendModal" class="modal">
-        <div class="modal-content">
-            <h3 style="margin-bottom: 20px;">Add Friend</h3>
-            <form id="addFriendForm">
-                <div class="form-group">
-                    <label>Username</label>
-                    <input type="text" class="form-control" id="friendUsername" placeholder="Enter username" required>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Send Request</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('addFriendModal')" style="flex: 1;">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Room Settings Modal -->
-    <div id="roomSettingsModal" class="modal">
-        <div class="modal-content">
-            <h3 style="margin-bottom: 20px;">Room Settings</h3>
-            <div id="roomMembersList"></div>
-            <div style="margin-top: 20px;">
-                <button class="btn btn-secondary" onclick="closeModal('roomSettingsModal')">Close</button>
-            </div>
-        </div>
-    </div>
-
+    
     <script>
-        // Firebase Configuration
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyB_Q5EseET7WykS4WcIQs1Y7a-CMmcbnp8",
             authDomain: "aapurti-9e385.firebaseapp.com",
@@ -753,864 +1111,216 @@
             appId: "1:72618637937:web:e89cca640172708f23f9d0",
             measurementId: "G-4C479V87YN"
         };
-
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const rtdb = firebase.database();
-
-        // Global variables
-        let currentUser = null;
-        let currentRoom = null;
-        let messageListeners = [];
-
-        // Authentication Functions
-        function showSignIn() {
-            document.getElementById('signInForm').classList.remove('hidden');
-            document.getElementById('signUpForm').classList.add('hidden');
-            document.getElementById('forgotPasswordForm').classList.add('hidden');
-        }
-
-        function showSignUp() {
-            document.getElementById('signInForm').classList.add('hidden');
-            document.getElementById('signUpForm').classList.remove('hidden');
-            document.getElementById('forgotPasswordForm').classList.add('hidden');
-        }
-
-        function showForgotPassword() {
-            document.getElementById('signInForm').classList.add('hidden');
-            document.getElementById('signUpForm').classList.add('hidden');
-            document.getElementById('forgotPasswordForm').classList.remove('hidden');
-        }
-
-        // Check username availability
-        async function checkUsernameAvailability(username) {
-            const usernameDoc = await db.collection('usernames').doc(username.toLowerCase()).get();
-            return !usernameDoc.exists;
-        }
-
-        // Sign Up
-        document.getElementById('signUpFormElement').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const name = document.getElementById('signUpName').value;
-            const username = document.getElementById('signUpUsername').value;
-            const age = document.getElementById('signUpAge').value;
-            const gender = document.getElementById('signUpGender').value;
-            const mobile = document.getElementById('signUpMobile').value;
-            const email = document.getElementById('signUpEmail').value;
-            const password = document.getElementById('signUpPassword').value;
-
-            try {
-                // Check username availability
-                const isUsernameAvailable = await checkUsernameAvailability(username);
-                if (!isUsernameAvailable) {
-                    showNotification('Username already taken!', 'error');
-                    return;
-                }
-
-                // Create user account
-                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                const user = userCredential.user;
-
-                // Save user data to Firestore
-                await db.collection('users').doc(user.uid).set({
-                    name: name,
-                    username: username.toLowerCase(),
-                    age: parseInt(age),
-                    gender: gender,
-                    mobile: mobile,
-                    email: email,
-                    profilePicUrl: '',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                    isOnline: true
-                });
-
-                // Reserve username
-                await db.collection('usernames').doc(username.toLowerCase()).set({
-                    uid: user.uid
-                });
-
-                showNotification('Account created successfully!', 'success');
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        });
-
-        // Sign In
-        document.getElementById('signInFormElement').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const email = document.getElementById('signInEmail').value;
-            const password = document.getElementById('signInPassword').value;
-
-            try {
-                await auth.signInWithEmailAndPassword(email, password);
-                showNotification('Welcome back!', 'success');
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        });
-
-        // Forgot Password
-        document.getElementById('forgotPasswordFormElement').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const email = document.getElementById('forgotEmail').value;
-
-            try {
-                await auth.sendPasswordResetEmail(email);
-                showNotification('Password reset email sent!', 'success');
-                showSignIn();
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        });
-
-        // Sign Out
-        async function signOut() {
-            try {
-                // Update online status
-                if (currentUser) {
-                    await db.collection('users').doc(currentUser.uid).update({
-                        isOnline: false,
-                        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        
+        // Firebase initialization
+        // firebase.initializeApp(firebaseConfig);
+        // const auth = firebase.auth();
+        // const db = firebase.firestore();
+        // const storage = firebase.storage();
+        
+        // DOM Elements
+        const authScreen = document.getElementById('authScreen');
+        const appContainer = document.getElementById('appContainer');
+        const signupBtn = document.getElementById('signupBtn');
+        const loginLink = document.getElementById('loginLink');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const messagesContainer = document.getElementById('messagesContainer');
+        
+        // Sample Firebase functions (commented for this demo)
+        /*
+        // Sign up with email and password
+        function signUp(email, password, userData) {
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    return db.collection('users').doc(user.uid).set({
+                        name: userData.name,
+                        username: userData.username,
+                        age: userData.age,
+                        gender: userData.gender,
+                        email: email,
+                        mobile: userData.mobile,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        profilePicture: ''
                     });
-                }
-                
-                await auth.signOut();
-                showNotification('Signed out successfully!', 'success');
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
+                })
+                .then(() => {
+                    console.log('User account created & signed in!');
+                    showAppScreen();
+                })
+                .catch((error) => {
+                    console.error('Error creating user:', error);
+                    alert(error.message);
+                });
         }
-
-        // Auth State Observer
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                currentUser = user;
-                
-                // Update online status
-                await db.collection('users').doc(user.uid).update({
-                    isOnline: true,
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        
+        // Sign in with email and password
+        function signIn(email, password) {
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    console.log('Signed in successfully');
+                    showAppScreen();
+                })
+                .catch((error) => {
+                    console.error('Error signing in:', error);
+                    alert(error.message);
                 });
-
-                // Load user data
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                const userData = userDoc.data();
-                
-                document.getElementById('userName').textContent = userData.name;
-                document.getElementById('authSection').style.display = 'none';
-                document.getElementById('dashboard').style.display = 'grid';
-                
-                // Initialize dashboard
-                loadRooms();
-                loadFriends();
-                loadFriendRequests();
-                loadNotifications();
-                
-                // Enable message input
-                document.getElementById('messageInput').disabled = false;
-                document.getElementById('sendBtn').disabled = false;
-            } else {
-                currentUser = null;
-                document.getElementById('authSection').style.display = 'flex';
-                document.getElementById('dashboard').style.display = 'none';
-            }
-        });
-
-        // Room Functions
-        async function loadRooms() {
-            const roomsList = document.getElementById('roomsList');
-            
-            // Load public rooms
-            const publicRoomsQuery = db.collection('rooms').where('type', '==', 'public');
-            publicRoomsQuery.onSnapshot((snapshot) => {
-                const publicRooms = [];
-                snapshot.forEach((doc) => {
-                    publicRooms.push({ id: doc.id, ...doc.data() });
-                });
-                
-                // Load private rooms user has access to
-                const privateRoomsQuery = db.collection('rooms')
-                    .where('type', '==', 'private')
-                    .where('members', 'array-contains', currentUser.uid);
-                
-                privateRoomsQuery.onSnapshot((privateSnapshot) => {
-                    const privateRooms = [];
-                    privateSnapshot.forEach((doc) => {
-                        privateRooms.push({ id: doc.id, ...doc.data() });
-                    });
-                    
-                    const allRooms = [...publicRooms, ...privateRooms];
-                    displayRooms(allRooms);
-                });
+        }
+        
+        // Sign out
+        function signOut() {
+            auth.signOut().then(() => {
+                console.log('Signed out successfully');
+                showAuthScreen();
+            }).catch((error) => {
+                console.error('Error signing out:', error);
             });
         }
-
-        function displayRooms(rooms) {
-            const roomsList = document.getElementById('roomsList');
-            roomsList.innerHTML = '';
+        */
+        
+        // UI Functions
+        function showAppScreen() {
+            authScreen.style.display = 'none';
+            appContainer.style.display = 'flex';
             
-            rooms.forEach((room) => {
-                const roomElement = document.createElement('div');
-                roomElement.className = 'room-item';
-                roomElement.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-weight: 600;">${room.name}</div>
-                            <div style="font-size: 12px; opacity: 0.7;">${room.type} • ${room.memberCount || 0} members</div>
-                        </div>
-                        <i class="fas fa-${room.type === 'private' ? 'lock' : 'globe'}"></i>
+            // Animate the app entrance
+            gsap.from(appContainer, {
+                duration: 0.8,
+                opacity: 0,
+                y: 20,
+                ease: "power3.out"
+            });
+        }
+        
+        function showAuthScreen() {
+            authScreen.style.display = 'flex';
+            appContainer.style.display = 'none';
+            
+            // Animate the auth screen entrance
+            gsap.from(authScreen, {
+                duration: 0.8,
+                opacity: 0,
+                y: 20,
+                ease: "power3.out"
+            });
+        }
+        
+        // Event Listeners
+        signupBtn.addEventListener('click', () => {
+            // In a real app, we would validate inputs and create user
+            showAppScreen();
+        });
+        
+        loginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            // Switch to login view (simplified for demo)
+            document.querySelector('.auth-title').textContent = 'Welcome Back';
+            document.querySelector('.auth-subtitle').textContent = 'Sign in to continue your conversation';
+            signupBtn.textContent = 'Sign In';
+            document.getElementById('loginLink').textContent = 'Sign Up';
+            document.querySelector('.auth-footer').innerHTML = `Don't have an account? <a href="#" class="auth-link" id="signupLink">Sign Up</a>`;
+            
+            // Add signup link functionality
+            document.getElementById('signupLink').addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelector('.auth-title').textContent = 'Create Your Account';
+                document.querySelector('.auth-subtitle').textContent = 'Join our community to start chatting securely';
+                signupBtn.textContent = 'Sign Up';
+                document.querySelector('.auth-footer').innerHTML = `Already have an account? <a href="#" class="auth-link" id="loginLink">Sign In</a>`;
+            });
+        });
+        
+        logoutBtn.addEventListener('click', () => {
+            // signOut();
+            showAuthScreen();
+        });
+        
+        // Send message functionality
+        function sendMessage() {
+            const messageText = messageInput.value.trim();
+            if (messageText) {
+                // Create message element
+                const messageEl = document.createElement('div');
+                messageEl.className = 'message outgoing';
+                messageEl.innerHTML = `
+                    ${messageText}
+                    <div class="message-time">
+                        ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        <span class="message-status"><i class="fas fa-check"></i></span>
                     </div>
                 `;
                 
-                roomElement.addEventListener('click', () => joinRoom(room.id, room.name));
-                roomsList.appendChild(roomElement);
-            });
-        }
-
-        // Create Room
-        document.getElementById('createRoomForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const name = document.getElementById('roomName').value;
-            const type = document.getElementById('roomType').value;
-            const description = document.getElementById('roomDescription').value;
-
-            try {
-                const roomData = {
-                    name: name,
-                    type: type,
-                    description: description,
-                    createdBy: currentUser.uid,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    members: [currentUser.uid],
-                    memberCount: 1
-                };
-
-                await db.collection('rooms').add(roomData);
-                
-                closeModal('createRoomModal');
-                document.getElementById('createRoomForm').reset();
-                showNotification('Room created successfully!', 'success');
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        });
-
-        // Join Room
-        async function joinRoom(roomId, roomName) {
-            try {
-                // Clear previous message listeners
-                messageListeners.forEach(unsubscribe => unsubscribe());
-                messageListeners = [];
-                
-                currentRoom = roomId;
-                document.getElementById('currentRoomName').textContent = roomName;
-                document.getElementById('roomSettingsBtn').style.display = 'block';
-                
-                // Add user to room members if not already
-                const roomRef = db.collection('rooms').doc(roomId);
-                await roomRef.update({
-                    members: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
-                });
-                
-                // Load messages
-                loadMessages(roomId);
-                
-                // Update active room styling
-                document.querySelectorAll('.room-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-                event.target.closest('.room-item').classList.add('active');
-                
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        }
-
-        // Load Messages
-        function loadMessages(roomId) {
-            const messagesRef = db.collection('rooms').doc(roomId).collection('messages')
-                .orderBy('timestamp', 'asc');
-            
-            const unsubscribe = messagesRef.onSnapshot((snapshot) => {
-                const chatMessages = document.getElementById('chatMessages');
-                chatMessages.innerHTML = '';
-                
-                snapshot.forEach((doc) => {
-                    const message = doc.data();
-                    displayMessage(message, doc.id);
-                });
+                // Add to messages container
+                messagesContainer.appendChild(messageEl);
                 
                 // Scroll to bottom
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            });
-            
-            messageListeners.push(unsubscribe);
-        }
-
-        // Display Message
-        async function displayMessage(message, messageId) {
-            const chatMessages = document.getElementById('chatMessages');
-            const messageElement = document.createElement('div');
-            
-            const isOwnMessage = message.senderId === currentUser.uid;
-            messageElement.className = `message ${isOwnMessage ? 'own' : 'other'}`;
-            
-            // Get sender info
-            let senderName = 'Unknown';
-            if (message.senderId) {
-                try {
-                    const senderDoc = await db.collection('users').doc(message.senderId).get();
-                    if (senderDoc.exists) {
-                        senderName = senderDoc.data().name;
-                    }
-                } catch (error) {
-                    console.error('Error fetching sender info:', error);
-                }
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                
+                // Clear input
+                messageInput.value = '';
+                
+                // Simulate typing and reply after a delay
+                setTimeout(() => {
+                    // Update status to delivered
+                    const statusIcon = messageEl.querySelector('.message-status i');
+                    statusIcon.className = 'fas fa-check-double';
+                    
+                    // Simulate reply after 2 seconds
+                    setTimeout(simulateReply, 2000, messageText);
+                }, 1000);
             }
+        }
+        
+        // Simulate a reply from the other user
+        function simulateReply(originalMessage) {
+            const replies = [
+                "Thanks for the update!",
+                "That sounds great!",
+                "I'll check it out right away.",
+                "Can you share more details?",
+                "Let me think about that.",
+                "I agree with you on that point.",
+                "What time works best for you?",
+                "Looking forward to it!",
+                "That was exactly what I needed."
+            ];
             
-            const timestamp = message.timestamp ? 
-                new Date(message.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 
-                'Now';
+            const randomReply = replies[Math.floor(Math.random() * replies.length)];
             
-            messageElement.innerHTML = `
-                <div>${message.text}</div>
-                <div class="message-info">
-                    ${!isOwnMessage ? senderName + ' • ' : ''}${timestamp}
-                    ${isOwnMessage ? '<span class="message-status">✓✓</span>' : ''}
-                </div>
-                <div class="emoji-reactions">
-                    <button class="emoji-btn" onclick="addReaction('${messageId}', '❤️')">❤️</button>
-                    <button class="emoji-btn" onclick="addReaction('${messageId}', '😂')">😂</button>
-                    <button class="emoji-btn" onclick="addReaction('${messageId}', '🔥')">🔥</button>
-                    <button class="emoji-btn" onclick="addReaction('${messageId}', '👍')">👍</button>
+            const messageEl = document.createElement('div');
+            messageEl.className = 'message incoming';
+            messageEl.innerHTML = `
+                ${randomReply}
+                <div class="message-time">
+                    ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                 </div>
             `;
             
-            chatMessages.appendChild(messageElement);
+            messagesContainer.appendChild(messageEl);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
-
-        // Send Message
-        async function sendMessage() {
-            const messageInput = document.getElementById('messageInput');
-            const messageText = messageInput.value.trim();
-            
-            if (!messageText || !currentRoom) return;
-            
-            try {
-                await db.collection('rooms').doc(currentRoom).collection('messages').add({
-                    text: messageText,
-                    senderId: currentUser.uid,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    reactions: {}
-                });
-                
-                messageInput.value = '';
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        }
-
-        // Add Reaction
-        async function addReaction(messageId, emoji) {
-            if (!currentRoom) return;
-            
-            try {
-                const messageRef = db.collection('rooms').doc(currentRoom).collection('messages').doc(messageId);
-                await messageRef.update({
-                    [`reactions.${emoji}.${currentUser.uid}`]: true
-                });
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        }
-
-        // Message input event listener
-        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+        
+        // Event listeners for sending messages
+        sendBtn.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 sendMessage();
             }
         });
-
-        // Friend Functions
-        async function loadFriends() {
-            const friendsQuery = db.collection('friends')
-                .where('users', 'array-contains', currentUser.uid)
-                .where('status', '==', 'accepted');
-            
-            friendsQuery.onSnapshot(async (snapshot) => {
-                const friendsList = document.getElementById('friendsList');
-                friendsList.innerHTML = '';
-                
-                for (const doc of snapshot.docs) {
-                    const friendship = doc.data();
-                    const friendId = friendship.users.find(id => id !== currentUser.uid);
-                    
-                    try {
-                        const friendDoc = await db.collection('users').doc(friendId).get();
-                        if (friendDoc.exists) {
-                            const friendData = friendDoc.data();
-                            displayFriend(friendData, friendId);
-                        }
-                    } catch (error) {
-                        console.error('Error loading friend:', error);
-                    }
-                }
+        
+        // Initialize
+        showAuthScreen();
+        
+        // Simulate message delivery status updates
+        setInterval(() => {
+            const deliveredMessages = document.querySelectorAll('.message .fa-check');
+            deliveredMessages.forEach(icon => {
+                icon.className = 'fas fa-check-double';
             });
-        }
-
-        function displayFriend(friendData, friendId) {
-            const friendsList = document.getElementById('friendsList');
-            const friendElement = document.createElement('div');
-            friendElement.className = 'friend-item';
-            
-            friendElement.innerHTML = `
-                <div class="profile-pic" style="width: 35px; height: 35px; margin-right: 10px; position: relative;">
-                    ${friendData.profilePicUrl ? 
-                        `<img src="${friendData.profilePicUrl}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` :
-                        '<i class="fas fa-user"></i>'
-                    }
-                    ${friendData.isOnline ? '<div class="online-status"></div>' : ''}
-                </div>
-                <div style="flex: 1;">
-                    <div style="font-weight: 600;">${friendData.name}</div>
-                    <div style="font-size: 12px; opacity: 0.7;">
-                        ${friendData.isOnline ? 'Online' : 'Last seen ' + (friendData.lastSeen ? new Date(friendData.lastSeen.toDate()).toLocaleString() : 'Unknown')}
-                    </div>
-                </div>
-                <button class="btn btn-secondary" onclick="startDirectMessage('${friendId}')" style="padding: 5px 10px; font-size: 12px;">
-                    <i class="fas fa-comment"></i>
-                </button>
-            `;
-            
-            friendsList.appendChild(friendElement);
-        }
-
-        // Add Friend
-        document.getElementById('addFriendForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const username = document.getElementById('friendUsername').value.toLowerCase();
-            
-            try {
-                // Find user by username
-                const usernameDoc = await db.collection('usernames').doc(username).get();
-                if (!usernameDoc.exists) {
-                    showNotification('User not found!', 'error');
-                    return;
-                }
-                
-                const friendId = usernameDoc.data().uid;
-                if (friendId === currentUser.uid) {
-                    showNotification('You cannot add yourself as a friend!', 'error');
-                    return;
-                }
-                
-                // Check if already friends or request exists
-                const existingFriendship = await db.collection('friends')
-                    .where('users', 'array-contains', currentUser.uid)
-                    .get();
-                
-                let alreadyExists = false;
-                existingFriendship.forEach(doc => {
-                    const friendship = doc.data();
-                    if (friendship.users.includes(friendId)) {
-                        alreadyExists = true;
-                    }
-                });
-                
-                if (alreadyExists) {
-                    showNotification('Friend request already exists or you are already friends!', 'error');
-                    return;
-                }
-                
-                // Send friend request
-                await db.collection('friends').add({
-                    users: [currentUser.uid, friendId],
-                    requestedBy: currentUser.uid,
-                    status: 'pending',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                // Add notification for the recipient
-                const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
-                const currentUserData = currentUserDoc.data();
-                
-                await db.collection('notifications').add({
-                    userId: friendId,
-                    type: 'friend_request',
-                    message: `${currentUserData.name} sent you a friend request`,
-                    from: currentUser.uid,
-                    read: false,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                closeModal('addFriendModal');
-                document.getElementById('addFriendForm').reset();
-                showNotification('Friend request sent!', 'success');
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        });
-
-        // Load Friend Requests
-        async function loadFriendRequests() {
-            const requestsQuery = db.collection('friends')
-                .where('users', 'array-contains', currentUser.uid)
-                .where('status', '==', 'pending');
-            
-            requestsQuery.onSnapshot(async (snapshot) => {
-                const requestsList = document.getElementById('friendRequestsList');
-                requestsList.innerHTML = '';
-                
-                for (const doc of snapshot.docs) {
-                    const request = doc.data();
-                    if (request.requestedBy !== currentUser.uid) {
-                        try {
-                            const requesterDoc = await db.collection('users').doc(request.requestedBy).get();
-                            if (requesterDoc.exists) {
-                                const requesterData = requesterDoc.data();
-                                displayFriendRequest(requesterData, doc.id, request.requestedBy);
-                            }
-                        } catch (error) {
-                            console.error('Error loading friend request:', error);
-                        }
-                    }
-                }
-            });
-        }
-
-        function displayFriendRequest(requesterData, requestId, requesterId) {
-            const requestsList = document.getElementById('friendRequestsList');
-            const requestElement = document.createElement('div');
-            requestElement.className = 'friend-item';
-            requestElement.style.flexDirection = 'column';
-            requestElement.style.alignItems = 'flex-start';
-            
-            requestElement.innerHTML = `
-                <div style="display: flex; align-items: center; width: 100%; margin-bottom: 10px;">
-                    <div class="profile-pic" style="width: 35px; height: 35px; margin-right: 10px;">
-                        ${requesterData.profilePicUrl ? 
-                            `<img src="${requesterData.profilePicUrl}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` :
-                            '<i class="fas fa-user"></i>'
-                        }
-                    </div>
-                    <div>
-                        <div style="font-weight: 600;">${requesterData.name}</div>
-                        <div style="font-size: 12px; opacity: 0.7;">@${requesterData.username}</div>
-                    </div>
-                </div>
-                <div style="display: flex; gap: 5px; width: 100%;">
-                    <button class="btn btn-primary" onclick="acceptFriendRequest('${requestId}', '${requesterId}')" style="flex: 1; padding: 5px; font-size: 12px;">Accept</button>
-                    <button class="btn btn-secondary" onclick="declineFriendRequest('${requestId}', '${requesterId}')" style="flex: 1; padding: 5px; font-size: 12px;">Decline</button>
-                </div>
-            `;
-            
-            requestsList.appendChild(requestElement);
-        }
-
-        // Accept Friend Request
-        async function acceptFriendRequest(requestId, requesterId) {
-            try {
-                await db.collection('friends').doc(requestId).update({
-                    status: 'accepted',
-                    acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                // Add notification for the requester
-                const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
-                const currentUserData = currentUserDoc.data();
-                
-                await db.collection('notifications').add({
-                    userId: requesterId,
-                    type: 'friend_accepted',
-                    message: `${currentUserData.name} accepted your friend request`,
-                    from: currentUser.uid,
-                    read: false,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                showNotification('Friend request accepted!', 'success');
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        }
-
-        // Decline Friend Request
-        async function declineFriendRequest(requestId, requesterId) {
-            try {
-                await db.collection('friends').doc(requestId).delete();
-                
-                // Add notification for the requester
-                const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
-                const currentUserData = currentUserDoc.data();
-                
-                await db.collection('notifications').add({
-                    userId: requesterId,
-                    type: 'friend_declined',
-                    message: `${currentUserData.name} declined your friend request`,
-                    from: currentUser.uid,
-                    read: false,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                showNotification('Friend request declined!', 'success');
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        }
-
-        // Start Direct Message
-        async function startDirectMessage(friendId) {
-            try {
-                // Create or find existing DM room
-                const roomName = `DM_${[currentUser.uid, friendId].sort().join('_')}`;
-                
-                // Check if DM room already exists
-                const existingRoom = await db.collection('rooms').where('name', '==', roomName).get();
-                
-                let roomId;
-                if (existingRoom.empty) {
-                    // Create new DM room
-                    const roomRef = await db.collection('rooms').add({
-                        name: roomName,
-                        type: 'direct',
-                        members: [currentUser.uid, friendId],
-                        memberCount: 2,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    roomId = roomRef.id;
-                } else {
-                    roomId = existingRoom.docs[0].id;
-                }
-                
-                // Get friend's name for display
-                const friendDoc = await db.collection('users').doc(friendId).get();
-                const friendName = friendDoc.data().name;
-                
-                joinRoom(roomId, `Direct Message with ${friendName}`);
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        }
-
-        // Load Notifications
-        function loadNotifications() {
-            const notificationsQuery = db.collection('notifications')
-                .where('userId', '==', currentUser.uid)
-                .where('read', '==', false)
-                .orderBy('createdAt', 'desc')
-                .limit(10);
-            
-            notificationsQuery.onSnapshot((snapshot) => {
-                const notificationsList = document.getElementById('notificationsList');
-                notificationsList.innerHTML = '';
-                
-                snapshot.forEach((doc) => {
-                    const notification = doc.data();
-                    displayNotification(notification, doc.id);
-                });
-            });
-        }
-
-        function displayNotification(notification, notificationId) {
-            const notificationsList = document.getElementById('notificationsList');
-            const notificationElement = document.createElement('div');
-            notificationElement.className = 'friend-item';
-            notificationElement.style.cursor = 'pointer';
-            
-            const timestamp = notification.createdAt ? 
-                new Date(notification.createdAt.toDate()).toLocaleString() : 
-                'Now';
-            
-            notificationElement.innerHTML = `
-                <div style="flex: 1;">
-                    <div style="font-size: 14px; margin-bottom: 5px;">${notification.message}</div>
-                    <div style="font-size: 12px; opacity: 0.7;">${timestamp}</div>
-                </div>
-                <button class="btn btn-secondary" onclick="markNotificationRead('${notificationId}')" style="padding: 5px; font-size: 12px;">
-                    <i class="fas fa-check"></i>
-                </button>
-            `;
-            
-            notificationsList.appendChild(notificationElement);
-        }
-
-        // Mark Notification as Read
-        async function markNotificationRead(notificationId) {
-            try {
-                await db.collection('notifications').doc(notificationId).update({
-                    read: true
-                });
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        }
-
-        // Profile Functions
-        function showProfileModal() {
-            // Load current user data
-            db.collection('users').doc(currentUser.uid).get().then((doc) => {
-                if (doc.exists) {
-                    const userData = doc.data();
-                    document.getElementById('profilePicUrl').value = userData.profilePicUrl || '';
-                    document.getElementById('profileName').value = userData.name || '';
-                    document.getElementById('profileAge').value = userData.age || '';
-                    document.getElementById('profileGender').value = userData.gender || '';
-                }
-            });
-            
-            document.getElementById('profileModal').style.display = 'flex';
-        }
-
-        // Update Profile
-        document.getElementById('profileForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const profilePicUrl = document.getElementById('profilePicUrl').value;
-            const name = document.getElementById('profileName').value;
-            const age = document.getElementById('profileAge').value;
-            const gender = document.getElementById('profileGender').value;
-
-            try {
-                await db.collection('users').doc(currentUser.uid).update({
-                    profilePicUrl: profilePicUrl,
-                    name: name,
-                    age: parseInt(age),
-                    gender: gender,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                // Update display
-                document.getElementById('userName').textContent = name;
-                if (profilePicUrl) {
-                    document.getElementById('userProfilePic').innerHTML = `<img src="${profilePicUrl}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-                }
-                
-                closeModal('profileModal');
-                showNotification('Profile updated successfully!', 'success');
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        });
-
-        // Modal Functions
-        function showCreateRoomModal() {
-            document.getElementById('createRoomModal').style.display = 'flex';
-        }
-
-        function showAddFriendModal() {
-            document.getElementById('addFriendModal').style.display = 'flex';
-        }
-
-        function showRoomSettingsModal() {
-            if (!currentRoom) return;
-            
-            // Load room members
-            db.collection('rooms').doc(currentRoom).get().then(async (doc) => {
-                if (doc.exists) {
-                    const roomData = doc.data();
-                    const membersList = document.getElementById('roomMembersList');
-                    membersList.innerHTML = '<h4>Room Members:</h4>';
-                    
-                    for (const memberId of roomData.members || []) {
-                        try {
-                            const memberDoc = await db.collection('users').doc(memberId).get();
-                            if (memberDoc.exists) {
-                                const memberData = memberDoc.data();
-                                const memberElement = document.createElement('div');
-                                memberElement.className = 'friend-item';
-                                memberElement.innerHTML = `
-                                    <div class="profile-pic" style="width: 35px; height: 35px; margin-right: 10px;">
-                                        ${memberData.profilePicUrl ? 
-                                            `<img src="${memberData.profilePicUrl}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` :
-                                            '<i class="fas fa-user"></i>'
-                                        }
-                                    </div>
-                                    <div>
-                                        <div style="font-weight: 600;">${memberData.name}</div>
-                                        <div style="font-size: 12px; opacity: 0.7;">@${memberData.username}</div>
-                                    </div>
-                                `;
-                                membersList.appendChild(memberElement);
-                            }
-                        } catch (error) {
-                            console.error('Error loading member:', error);
-                        }
-                    }
-                }
-            });
-            
-            document.getElementById('roomSettingsModal').style.display = 'flex';
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        // Close modals when clicking outside
-        window.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
-                e.target.style.display = 'none';
-            }
-        });
-
-        // Notification Function
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = 'notification';
-            notification.textContent = message;
-            
-            if (type === 'error') {
-                notification.style.background = 'linear-gradient(45deg, #ff6b6b, #ee5a52)';
-            } else if (type === 'success') {
-                notification.style.background = 'linear-gradient(45deg, #4ecdc4, #44a08d)';
-            }
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 5000);
-        }
-
-        // Search Functions
-        document.getElementById('roomSearch').addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const roomItems = document.querySelectorAll('.room-item');
-            
-            roomItems.forEach(item => {
-                const roomName = item.textContent.toLowerCase();
-                if (roomName.includes(searchTerm)) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        });
-
-        document.getElementById('friendSearch').addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const friendItems = document.querySelectorAll('#friendsList .friend-item');
-            
-            friendItems.forEach(item => {
-                const friendName = item.textContent.toLowerCase();
-                if (friendName.includes(searchTerm)) {
-                    item.style.display = 'flex';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        });
-
-        // Initialize app
-        console.log('Advanced Chat App initialized!');
+        }, 3000);
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96875e8692c489a2',t:'MTc1NDA3MjYzMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
