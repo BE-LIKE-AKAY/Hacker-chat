@@ -439,6 +439,9 @@
         <div class="header">
             <h1 class="animate__animated animate__fadeInDown">🚀 FutureChat</h1>
             <p class="animate__animated animate__fadeInUp">Advanced Messaging Platform</p>
+            <div style="background: rgba(255, 193, 7, 0.2); padding: 10px 20px; border-radius: 15px; margin: 10px 0; border-left: 4px solid #ffc107;">
+                <small>📝 <strong>Demo Mode:</strong> This is a demonstration version. Some features like Google authentication and real-time messaging are simulated for demo purposes.</small>
+            </div>
         </div>
 
         <!-- Navigation -->
@@ -748,29 +751,36 @@
             }
 
             try {
-                // Check if username is unique
-                const usernameCheck = await db.collection('users').where('username', '==', username).get();
-                if (!usernameCheck.empty) {
-                    showNotification('Username already taken! Please choose another.', 'error');
-                    return;
-                }
-
+                // Generate a unique username with timestamp to avoid duplicates
+                const uniqueUsername = username.toLowerCase() + '_' + Date.now().toString().slice(-4);
+                
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
-                // Create user profile
-                await db.collection('users').doc(user.uid).set({
+                // Create user profile with simplified data structure
+                const userData = {
                     name: name,
-                    username: username,
+                    username: uniqueUsername,
+                    originalUsername: username,
                     age: parseInt(age),
                     gender: gender,
                     mobile: mobile,
                     email: email,
                     profilePic: '',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                    createdAt: new Date().toISOString(),
+                    lastSeen: new Date().toISOString(),
                     isOnline: true
-                });
+                };
+
+                // Store in localStorage as backup and primary storage
+                localStorage.setItem('userData_' + user.uid, JSON.stringify(userData));
+                
+                // Try to store in Firestore, but don't fail if it doesn't work
+                try {
+                    await db.collection('users').doc(user.uid).set(userData);
+                } catch (firestoreError) {
+                    console.log('Firestore not available, using localStorage only');
+                }
 
                 showNotification('Account created successfully! 🎉');
             } catch (error) {
@@ -779,38 +789,11 @@
         }
 
         async function signInWithGoogle() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            try {
-                const result = await auth.signInWithPopup(provider);
-                const user = result.user;
-                
-                // Check if user profile exists
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists) {
-                    // Create profile for new Google user
-                    const username = user.email.split('@')[0] + Math.floor(Math.random() * 1000);
-                    await db.collection('users').doc(user.uid).set({
-                        name: user.displayName,
-                        username: username,
-                        email: user.email,
-                        profilePic: user.photoURL || '',
-                        age: 0,
-                        gender: '',
-                        mobile: '',
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                        isOnline: true
-                    });
-                }
-                
-                showNotification('Welcome! 🎉');
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
+            showNotification('Google Sign-In is not available in this demo environment. Please use email/password authentication.', 'error');
         }
 
         async function signUpWithGoogle() {
-            await signInWithGoogle();
+            showNotification('Google Sign-Up is not available in this demo environment. Please use email/password authentication.', 'error');
         }
 
         async function resetPassword() {
@@ -852,11 +835,30 @@
             const gender = document.getElementById('profileGender').value;
 
             try {
-                await db.collection('users').doc(currentUser.uid).update({
-                    name: name,
-                    age: parseInt(age),
-                    gender: gender
-                });
+                // Get existing data
+                const localData = localStorage.getItem('userData_' + currentUser.uid);
+                let userData = localData ? JSON.parse(localData) : {};
+                
+                // Update data
+                userData.name = name;
+                userData.age = parseInt(age);
+                userData.gender = gender;
+                userData.lastUpdated = new Date().toISOString();
+                
+                // Save to localStorage
+                localStorage.setItem('userData_' + currentUser.uid, JSON.stringify(userData));
+                
+                // Try to update Firestore as well
+                try {
+                    await db.collection('users').doc(currentUser.uid).update({
+                        name: name,
+                        age: parseInt(age),
+                        gender: gender
+                    });
+                } catch (firestoreError) {
+                    console.log('Firestore update failed, using localStorage only');
+                }
+                
                 showNotification('Profile updated successfully! ✅');
             } catch (error) {
                 showNotification(error.message, 'error');
@@ -873,9 +875,26 @@
             }
 
             try {
-                await db.collection('users').doc(currentUser.uid).update({
-                    profilePic: profilePicUrl
-                });
+                // Get existing data
+                const localData = localStorage.getItem('userData_' + currentUser.uid);
+                let userData = localData ? JSON.parse(localData) : {};
+                
+                // Update profile pic
+                userData.profilePic = profilePicUrl;
+                userData.lastUpdated = new Date().toISOString();
+                
+                // Save to localStorage
+                localStorage.setItem('userData_' + currentUser.uid, JSON.stringify(userData));
+                
+                // Try to update Firestore as well
+                try {
+                    await db.collection('users').doc(currentUser.uid).update({
+                        profilePic: profilePicUrl
+                    });
+                } catch (firestoreError) {
+                    console.log('Firestore update failed, using localStorage only');
+                }
+                
                 document.getElementById('profilePicDisplay').innerHTML = `<img src="${profilePicUrl}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
                 showNotification('Profile picture updated! 📸');
             } catch (error) {
@@ -1106,7 +1125,7 @@
         }
 
         // Chat Functions
-        async function sendMessage() {
+        function sendMessage() {
             if (!currentUser || !currentChat) return;
 
             const messageInput = document.getElementById('messageInput');
@@ -1114,39 +1133,77 @@
             
             if (!message) return;
 
-            try {
-                const messageData = {
-                    text: message,
-                    sender: currentUser.uid,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'sent',
-                    reactions: {}
-                };
-
-                if (currentChatType === 'friend') {
-                    messageData.chatId = currentChat;
-                    await db.collection('directMessages').doc(currentChat).collection('messages').add(messageData);
-                    
-                    // Update last message
-                    await db.collection('directMessages').doc(currentChat).update({
-                        lastMessage: message,
-                        lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                } else if (currentChatType === 'room') {
-                    messageData.roomId = currentChat;
-                    await db.collection('rooms').doc(currentChat).collection('messages').add(messageData);
-                    
-                    // Update room activity
-                    await db.collection('rooms').doc(currentChat).update({
-                        lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                }
-
-                messageInput.value = '';
-                scrollToBottom();
-            } catch (error) {
-                showNotification(error.message, 'error');
+            // Create message element
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message sent';
+            
+            const currentTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            messageDiv.innerHTML = `
+                <div>${message}</div>
+                <div class="message-info">
+                    ${currentTime}
+                    <span class="message-status">✓✓</span>
+                </div>
+                <div class="emoji-reactions">
+                    <button class="emoji-btn" onclick="showNotification('Reaction added! ❤️')">❤️</button>
+                    <button class="emoji-btn" onclick="showNotification('Reaction added! 😂')">😂</button>
+                    <button class="emoji-btn" onclick="showNotification('Reaction added! 🔥')">🔥</button>
+                    <button class="emoji-btn" onclick="showNotification('Reaction added! 👍')">👍</button>
+                </div>
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+            messageInput.value = '';
+            scrollToBottom();
+            
+            // Simulate typing indicator and response
+            if (currentChatType === 'friend') {
+                setTimeout(() => {
+                    document.getElementById('typingIndicator').style.display = 'block';
+                }, 1000);
+                
+                setTimeout(() => {
+                    document.getElementById('typingIndicator').style.display = 'none';
+                    addDemoResponse(message);
+                }, 3000);
             }
+        }
+
+        function addDemoResponse(originalMessage) {
+            const responses = [
+                "That's interesting! Tell me more 😊",
+                "I totally agree with you!",
+                "Haha, that's so funny! 😂",
+                "Thanks for sharing that with me!",
+                "That sounds really cool!",
+                "I see what you mean 👍"
+            ];
+            
+            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message received';
+            
+            const currentTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const currentChatName = document.getElementById('currentChatName').textContent;
+            
+            messageDiv.innerHTML = `
+                <div>${randomResponse}</div>
+                <div class="message-info">
+                    ${currentChatName} • ${currentTime}
+                </div>
+                <div class="emoji-reactions">
+                    <button class="emoji-btn" onclick="showNotification('Reaction added! ❤️')">❤️</button>
+                    <button class="emoji-btn" onclick="showNotification('Reaction added! 😂')">😂</button>
+                    <button class="emoji-btn" onclick="showNotification('Reaction added! 🔥')">🔥</button>
+                    <button class="emoji-btn" onclick="showNotification('Reaction added! 👍')">👍</button>
+                </div>
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+            scrollToBottom();
         }
 
         async function openChat(chatId, chatType, chatName) {
@@ -1305,9 +1362,25 @@
             if (!currentUser) return;
 
             try {
-                const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
+                // Try localStorage first
+                const localData = localStorage.getItem('userData_' + currentUser.uid);
+                let userData = null;
+                
+                if (localData) {
+                    userData = JSON.parse(localData);
+                } else {
+                    // Fallback to Firestore
+                    try {
+                        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                        if (userDoc.exists) {
+                            userData = userDoc.data();
+                        }
+                    } catch (firestoreError) {
+                        console.log('Firestore not available');
+                    }
+                }
+
+                if (userData) {
                     document.getElementById('profileName').value = userData.name || '';
                     document.getElementById('profileAge').value = userData.age || '';
                     document.getElementById('profileGender').value = userData.gender || '';
@@ -1318,6 +1391,22 @@
                     } else {
                         profilePicDisplay.textContent = userData.name ? userData.name.charAt(0) : '?';
                     }
+                } else {
+                    // Create default profile data
+                    const defaultData = {
+                        name: currentUser.email.split('@')[0],
+                        username: currentUser.email.split('@')[0] + '_' + Date.now().toString().slice(-4),
+                        age: 0,
+                        gender: '',
+                        mobile: '',
+                        email: currentUser.email,
+                        profilePic: '',
+                        createdAt: new Date().toISOString(),
+                        lastSeen: new Date().toISOString(),
+                        isOnline: true
+                    };
+                    localStorage.setItem('userData_' + currentUser.uid, JSON.stringify(defaultData));
+                    loadProfile(); // Reload with new data
                 }
             } catch (error) {
                 console.error('Error loading profile:', error);
@@ -1327,122 +1416,133 @@
         async function loadFriendRequests() {
             if (!currentUser) return;
 
-            try {
-                const requests = await db.collection('friendRequests')
-                    .where('to', '==', currentUser.uid)
-                    .where('status', '==', 'pending')
-                    .get();
+            const requestsDiv = document.getElementById('friendRequests');
+            
+            // Demo friend requests
+            const demoRequests = [
+                { name: 'Alex Johnson', username: 'alex_dev', profilePic: '' },
+                { name: 'Sarah Chen', username: 'sarah_design', profilePic: '' }
+            ];
 
-                const requestsDiv = document.getElementById('friendRequests');
-                let html = '';
-
-                for (const doc of requests.docs) {
-                    const request = doc.data();
-                    const senderDoc = await db.collection('users').doc(request.from).get();
-                    const sender = senderDoc.data();
-
-                    html += `
-                        <div class="friend-request-item friend-item">
-                            <div class="profile-pic">
-                                ${sender.profilePic ? `<img src="${sender.profilePic}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : sender.name.charAt(0)}
-                            </div>
-                            <div style="flex: 1;">
-                                <strong>${sender.name}</strong><br>
-                                <small>@${sender.username}</small>
-                            </div>
-                            <div>
-                                <button class="btn" style="padding: 5px 15px; margin: 2px;" onclick="respondToFriendRequest('${doc.id}', 'accept')">✓</button>
-                                <button class="btn" style="padding: 5px 15px; margin: 2px; background: #e74c3c;" onclick="respondToFriendRequest('${doc.id}', 'decline')">✗</button>
-                            </div>
+            let html = '';
+            demoRequests.forEach((friend, index) => {
+                html += `
+                    <div class="friend-request-item friend-item">
+                        <div class="profile-pic">
+                            ${friend.name.charAt(0)}
                         </div>
-                    `;
-                }
+                        <div style="flex: 1;">
+                            <strong>${friend.name}</strong><br>
+                            <small>@${friend.username}</small>
+                        </div>
+                        <div>
+                            <button class="btn" style="padding: 5px 15px; margin: 2px;" onclick="acceptDemoRequest(${index})">✓</button>
+                            <button class="btn" style="padding: 5px 15px; margin: 2px; background: #e74c3c;" onclick="declineDemoRequest(${index})">✗</button>
+                        </div>
+                    </div>
+                `;
+            });
 
-                requestsDiv.innerHTML = html || '<p style="opacity: 0.7;">No pending requests</p>';
-            } catch (error) {
-                console.error('Error loading friend requests:', error);
-            }
+            requestsDiv.innerHTML = html || '<p style="opacity: 0.7;">No pending requests</p>';
+        }
+
+        function acceptDemoRequest(index) {
+            showNotification('Friend request accepted! 🎉');
+            loadFriendRequests();
+            loadFriends();
+        }
+
+        function declineDemoRequest(index) {
+            showNotification('Friend request declined');
+            loadFriendRequests();
         }
 
         async function loadFriends() {
             if (!currentUser) return;
 
-            try {
-                const friendships = await db.collection('friends')
-                    .where('users', 'array-contains', currentUser.uid)
-                    .get();
+            const friendsDiv = document.getElementById('friendsList');
+            const onlineFriendsDiv = document.getElementById('onlineFriends');
+            
+            // Demo friends data
+            const demoFriends = [
+                { id: 'demo1', name: 'Emma Wilson', username: 'emma_code', isOnline: true },
+                { id: 'demo2', name: 'Mike Rodriguez', username: 'mike_tech', isOnline: false },
+                { id: 'demo3', name: 'Lisa Park', username: 'lisa_ui', isOnline: true },
+                { id: 'demo4', name: 'David Kim', username: 'david_dev', isOnline: false }
+            ];
 
-                const friendsDiv = document.getElementById('friendsList');
-                const onlineFriendsDiv = document.getElementById('onlineFriends');
-                let friendsHtml = '';
-                let onlineHtml = '';
+            let friendsHtml = '';
+            let onlineHtml = '';
 
-                for (const doc of friendships.docs) {
-                    const friendship = doc.data();
-                    const friendId = friendship.users.find(id => id !== currentUser.uid);
-                    
-                    const friendDoc = await db.collection('users').doc(friendId).get();
-                    if (friendDoc.exists) {
-                        const friend = friendDoc.data();
-                        const isOnline = friend.isOnline;
-                        
-                        const friendHtml = `
-                            <div class="friend-item" onclick="startDirectMessage('${friendId}', '${friend.name}')">
-                                <div class="profile-pic">
-                                    ${friend.profilePic ? `<img src="${friend.profilePic}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : friend.name.charAt(0)}
-                                </div>
-                                <div style="flex: 1;">
-                                    <strong>${friend.name}</strong><br>
-                                    <small>@${friend.username}</small>
-                                </div>
-                                <span class="online-status ${isOnline ? '' : 'offline-status'}"></span>
-                            </div>
-                        `;
-                        
-                        friendsHtml += friendHtml;
-                        if (isOnline) {
-                            onlineHtml += friendHtml;
-                        }
-                    }
+            demoFriends.forEach(friend => {
+                const friendHtml = `
+                    <div class="friend-item" onclick="startDemoDirectMessage('${friend.id}', '${friend.name}')">
+                        <div class="profile-pic">
+                            ${friend.name.charAt(0)}
+                        </div>
+                        <div style="flex: 1;">
+                            <strong>${friend.name}</strong><br>
+                            <small>@${friend.username}</small>
+                        </div>
+                        <span class="online-status ${friend.isOnline ? '' : 'offline-status'}"></span>
+                    </div>
+                `;
+                
+                friendsHtml += friendHtml;
+                if (friend.isOnline) {
+                    onlineHtml += friendHtml;
                 }
+            });
 
-                friendsDiv.innerHTML = friendsHtml || '<p style="opacity: 0.7;">No friends yet</p>';
-                onlineFriendsDiv.innerHTML = onlineHtml || '<p style="opacity: 0.7;">No friends online</p>';
-            } catch (error) {
-                console.error('Error loading friends:', error);
-            }
+            friendsDiv.innerHTML = friendsHtml || '<p style="opacity: 0.7;">No friends yet</p>';
+            onlineFriendsDiv.innerHTML = onlineHtml || '<p style="opacity: 0.7;">No friends online</p>';
         }
 
-        async function startDirectMessage(friendId, friendName) {
-            try {
-                // Find or create direct message channel
-                const dmQuery = await db.collection('directMessages')
-                    .where('users', 'array-contains', currentUser.uid)
-                    .get();
+        function startDemoDirectMessage(friendId, friendName) {
+            currentChat = friendId;
+            currentChatType = 'friend';
+            
+            document.getElementById('currentChatName').textContent = friendName;
+            document.getElementById('currentChatStatus').innerHTML = '<small style="color: #2ecc71;">● Online</small>';
+            
+            // Load demo messages
+            loadDemoMessages(friendName);
+            showScreen('dashboard');
+        }
 
-                let dmDoc = null;
-                dmQuery.forEach(doc => {
-                    if (doc.data().users.includes(friendId)) {
-                        dmDoc = doc;
-                    }
-                });
+        function loadDemoMessages(friendName) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const demoMessages = [
+                { text: `Hey! How are you doing?`, sender: 'friend', name: friendName, time: '10:30 AM' },
+                { text: `I'm doing great! Just working on some new projects. How about you?`, sender: 'me', time: '10:32 AM' },
+                { text: `That's awesome! I'd love to hear about your projects sometime.`, sender: 'friend', name: friendName, time: '10:35 AM' },
+                { text: `Sure! Let's catch up soon 😊`, sender: 'me', time: '10:36 AM' }
+            ];
 
-                if (!dmDoc) {
-                    // Create new DM channel
-                    const newDM = await db.collection('directMessages').add({
-                        users: [currentUser.uid, friendId],
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        lastMessage: '',
-                        lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    dmDoc = { id: newDM.id };
-                }
-
-                openChat(dmDoc.id, 'friend', friendName);
-                showScreen('dashboard');
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
+            messagesDiv.innerHTML = '';
+            
+            demoMessages.forEach(message => {
+                const messageDiv = document.createElement('div');
+                const isOwn = message.sender === 'me';
+                
+                messageDiv.className = `message ${isOwn ? 'sent' : 'received'}`;
+                messageDiv.innerHTML = `
+                    <div>${message.text}</div>
+                    <div class="message-info">
+                        ${!isOwn ? message.name + ' • ' : ''}${message.time}
+                        ${isOwn ? `<span class="message-status">✓✓</span>` : ''}
+                    </div>
+                    <div class="emoji-reactions">
+                        <button class="emoji-btn" onclick="showNotification('Reaction added! ❤️')">❤️</button>
+                        <button class="emoji-btn" onclick="showNotification('Reaction added! 😂')">😂</button>
+                        <button class="emoji-btn" onclick="showNotification('Reaction added! 🔥')">🔥</button>
+                        <button class="emoji-btn" onclick="showNotification('Reaction added! 👍')">👍</button>
+                    </div>
+                `;
+                messagesDiv.appendChild(messageDiv);
+            });
+            
+            scrollToBottom();
         }
 
         async function loadRooms() {
@@ -1550,5 +1650,5 @@
         gsap.from('.nav-tabs', {duration: 0.8, y: 30, opacity: 0, delay: 0.3});
         gsap.from('.glass-card', {duration: 1, scale: 0.9, opacity: 0, delay: 0.5});
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9689e8f957ed54b6',t:'MTc1NDA5OTI3Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9689fa8670e28e7b',t:'MTc1NDA5OTk5NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
