@@ -3,694 +3,551 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Chat App</title>
+    <title>ChatVibe - Modern Chat Experience</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
         * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        
+        .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: white;
-            overflow-x: hidden;
         }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .glass-card {
+        
+        .glass-effect {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 30px;
-            margin: 20px 0;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .glass-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
-        }
-
-        .btn {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 10px 5px;
-            font-size: 14px;
-        }
-
-        .btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(45deg, #4834d4, #686de0);
-        }
-
-        .btn-secondary:hover {
-            box-shadow: 0 5px 15px rgba(72, 52, 212, 0.4);
-        }
-
-        .input-group {
-            margin: 15px 0;
-        }
-
-        .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #e0e0e0;
-        }
-
-        .input-group input, .input-group select {
-            width: 100%;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            font-size: 16px;
-            backdrop-filter: blur(5px);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
-
-        .input-group input::placeholder {
-            color: rgba(255, 255, 255, 0.7);
+        
+        .chat-bubble {
+            animation: slideInUp 0.3s ease-out;
         }
-
-        .input-group input:focus {
-            outline: none;
-            border-color: #ff6b6b;
-            box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            font-size: 3rem;
-            background: linear-gradient(45deg, #ff6b6b, #feca57);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 10px;
-        }
-
-        .nav-tabs {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-
-        .nav-tab {
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            padding: 12px 25px;
-            margin: 5px;
-            border-radius: 20px;
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .nav-tab.active {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            transform: scale(1.05);
-        }
-
-        .screen {
-            display: none;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .screen.active {
-            display: block;
-        }
-
-        .chat-container {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 20px;
-            height: 70vh;
-        }
-
-        .sidebar {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 20px;
-            overflow-y: auto;
-        }
-
-        .chat-area {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chat-header {
-            padding: 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .chat-messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-        }
-
-        .chat-input {
-            padding: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            display: flex;
-            gap: 10px;
-        }
-
-        .message {
-            margin: 10px 0;
-            padding: 12px 18px;
-            border-radius: 18px;
-            max-width: 70%;
-            position: relative;
-            animation: slideInUp 0.3s ease;
-        }
-
-        .message.sent {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            margin-left: auto;
-            border-bottom-right-radius: 5px;
-        }
-
-        .message.received {
-            background: rgba(255, 255, 255, 0.2);
-            border-bottom-left-radius: 5px;
-        }
-
-        .message-info {
-            font-size: 12px;
-            opacity: 0.7;
-            margin-top: 5px;
-        }
-
-        .emoji-reactions {
-            display: flex;
-            gap: 5px;
-            margin-top: 5px;
-        }
-
-        .emoji-btn {
-            background: none;
-            border: none;
-            font-size: 16px;
-            cursor: pointer;
-            padding: 2px 5px;
-            border-radius: 10px;
-            transition: all 0.2s ease;
-        }
-
-        .emoji-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.2);
-        }
-
-        .room-item, .friend-item {
-            padding: 15px;
-            margin: 10px 0;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .room-item:hover, .friend-item:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateX(5px);
-        }
-
-        .online-status {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #2ecc71;
-            display: inline-block;
-            margin-left: 10px;
-        }
-
-        .offline-status {
-            background: #95a5a6;
-        }
-
-        .profile-pic {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(45deg, #ff6b6b, #feca57);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 18px;
-        }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(45deg, #2ecc71, #27ae60);
-            padding: 15px 25px;
-            border-radius: 15px;
-            color: white;
-            z-index: 1000;
-            animation: slideInRight 0.5s ease;
-        }
-
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            padding: 30px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .close-btn {
-            float: right;
-            font-size: 24px;
-            cursor: pointer;
-            color: #ff6b6b;
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .user-search {
-            position: relative;
-        }
-
-        .search-results {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 100;
-        }
-
-        .search-result-item {
-            padding: 12px 15px;
-            cursor: pointer;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.2s ease;
-        }
-
-        .search-result-item:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        @media (max-width: 768px) {
-            .chat-container {
-                grid-template-columns: 1fr;
-                height: auto;
-            }
-            
-            .sidebar {
-                order: 2;
-                height: 300px;
-            }
-            
-            .chat-area {
-                order: 1;
-                height: 400px;
-            }
-            
-            .grid-2 {
-                grid-template-columns: 1fr;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .nav-tabs {
-                flex-direction: column;
-                align-items: center;
-            }
-        }
-
-        @keyframes fadeIn {
+        
+        @keyframes slideInUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
-        @keyframes slideInUp {
-            from { opacity: 0; transform: translateY(30px); }
+        
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .typing-indicator {
+            animation: typing 1.4s infinite;
+        }
+        
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        
+        .notification-slide {
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+        
+        .emoji-picker {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 12px;
+            z-index: 1000;
+        }
+        
+        .emoji-picker.show {
+            display: block;
+            animation: fadeInUp 0.2s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
-        @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(100px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        .typing-indicator {
-            display: none;
-            padding: 10px;
-            font-style: italic;
-            opacity: 0.7;
-        }
-
+        
+        .status-online { color: #10b981; }
+        .status-away { color: #f59e0b; }
+        .status-offline { color: #6b7280; }
+        
         .message-status {
             font-size: 10px;
-            opacity: 0.6;
-            text-align: right;
             margin-top: 2px;
         }
-
-        .room-stats {
-            font-size: 12px;
-            opacity: 0.8;
-            margin-top: 5px;
+        
+        .message-delivered { color: #6b7280; }
+        .message-seen { color: #3b82f6; }
+        
+        .dark-theme {
+            background: #1a1a2e;
+            color: #eee;
         }
-
-        .friend-request-item {
-            background: rgba(255, 193, 7, 0.2);
-            border-left: 4px solid #ffc107;
+        
+        .dark-theme .glass-effect {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-hidden { display: none; }
+            .mobile-full { width: 100%; }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1 class="animate__animated animate__fadeInDown">🚀 FutureChat</h1>
-            <p class="animate__animated animate__fadeInUp">Advanced Messaging Platform</p>
-            <div style="background: rgba(255, 193, 7, 0.2); padding: 10px 20px; border-radius: 15px; margin: 10px 0; border-left: 4px solid #ffc107;">
-                <small>📝 <strong>Demo Mode:</strong> This is a demonstration version. Some features like Google authentication and real-time messaging are simulated for demo purposes.</small>
+<body class="gradient-bg min-h-screen">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="fixed inset-0 gradient-bg flex items-center justify-center z-50">
+        <div class="text-center text-white">
+            <div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <h2 class="text-2xl font-bold mb-2">ChatVibe</h2>
+            <p class="text-white/80">Loading your conversations...</p>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notification-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <!-- Authentication Screen -->
+    <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="glass-effect rounded-3xl shadow-2xl w-full max-w-md p-8 text-white">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold mb-2">ChatVibe</h1>
+                <p class="text-white/80">Connect, Chat, Vibe Together</p>
             </div>
-        </div>
-
-        <!-- Navigation -->
-        <div class="nav-tabs" id="navTabs">
-            <button class="nav-tab active" onclick="showScreen('auth')">🔐 Auth</button>
-            <button class="nav-tab" onclick="showScreen('dashboard')" id="dashboardTab" style="display: none;">📱 Dashboard</button>
-            <button class="nav-tab" onclick="showScreen('profile')" id="profileTab" style="display: none;">👤 Profile</button>
-            <button class="nav-tab" onclick="showScreen('friends')" id="friendsTab" style="display: none;">👥 Friends</button>
-            <button class="nav-tab" onclick="showScreen('rooms')" id="roomsTab" style="display: none;">💬 Rooms</button>
-        </div>
-
-        <!-- Authentication Screen -->
-        <div id="authScreen" class="screen active">
-            <div class="glass-card animate__animated animate__fadeInUp">
-                <div class="nav-tabs">
-                    <button class="nav-tab active" onclick="showAuthTab('signin')">Sign In</button>
-                    <button class="nav-tab" onclick="showAuthTab('signup')">Sign Up</button>
-                    <button class="nav-tab" onclick="showAuthTab('forgot')">Forgot Password</button>
+            
+            <!-- Sign In Form -->
+            <div id="signin-form" class="space-y-6">
+                <h2 class="text-2xl font-semibold text-center">Welcome Back</h2>
+                <div class="space-y-4">
+                    <input type="email" id="signin-email" placeholder="Email" class="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50">
+                    <input type="password" id="signin-password" placeholder="Password" class="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50">
+                    <button onclick="signIn()" class="w-full bg-white text-purple-600 p-4 rounded-xl hover:bg-white/90 transition duration-200 font-semibold">
+                        Sign In
+                    </button>
                 </div>
-
-                <!-- Sign In -->
-                <div id="signinTab" class="auth-tab">
-                    <h2>Welcome Back! 👋</h2>
-                    <div class="input-group">
-                        <label>Email</label>
-                        <input type="email" id="signinEmail" placeholder="Enter your email">
-                    </div>
-                    <div class="input-group">
-                        <label>Password</label>
-                        <input type="password" id="signinPassword" placeholder="Enter your password">
-                    </div>
-                    <button class="btn" onclick="signIn()">Sign In</button>
-                    <button class="btn btn-secondary" onclick="signInWithGoogle()">🔍 Sign In with Google</button>
+                <div class="text-center space-y-3">
+                    <button onclick="showForgotPassword()" class="text-white/80 hover:text-white text-sm underline">Forgot Password?</button>
+                    <p class="text-white/80 text-sm">New to ChatVibe? <button onclick="showSignUp()" class="text-white font-semibold underline">Create Account</button></p>
                 </div>
-
-                <!-- Sign Up -->
-                <div id="signupTab" class="auth-tab" style="display: none;">
-                    <h2>Join FutureChat! 🎉</h2>
-                    <div class="grid-2">
-                        <div class="input-group">
-                            <label>Full Name</label>
-                            <input type="text" id="signupName" placeholder="Your full name">
-                        </div>
-                        <div class="input-group">
-                            <label>Username</label>
-                            <input type="text" id="signupUsername" placeholder="Unique username">
-                        </div>
-                    </div>
-                    <div class="grid-2">
-                        <div class="input-group">
-                            <label>Age</label>
-                            <input type="number" id="signupAge" placeholder="Your age">
-                        </div>
-                        <div class="input-group">
-                            <label>Gender</label>
-                            <select id="signupGender">
-                                <option value="">Select Gender</option>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="input-group">
-                        <label>Mobile Number</label>
-                        <input type="tel" id="signupMobile" placeholder="Your mobile number">
-                    </div>
-                    <div class="input-group">
-                        <label>Email</label>
-                        <input type="email" id="signupEmail" placeholder="Your email address">
-                    </div>
-                    <div class="input-group">
-                        <label>Password</label>
-                        <input type="password" id="signupPassword" placeholder="Create a strong password">
-                    </div>
-                    <button class="btn" onclick="signUp()">Create Account</button>
-                    <button class="btn btn-secondary" onclick="signUpWithGoogle()">🔍 Sign Up with Google</button>
+            </div>
+            
+            <!-- Sign Up Form -->
+            <div id="signup-form" class="space-y-6 hidden">
+                <h2 class="text-2xl font-semibold text-center">Join ChatVibe</h2>
+                <div class="space-y-4">
+                    <input type="text" id="signup-name" placeholder="Full Name" class="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50">
+                    <input type="text" id="signup-username" placeholder="Username" class="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50">
+                    <input type="email" id="signup-email" placeholder="Email" class="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50">
+                    <input type="password" id="signup-password" placeholder="Password" class="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50">
+                    <button onclick="signUp()" class="w-full bg-white text-purple-600 p-4 rounded-xl hover:bg-white/90 transition duration-200 font-semibold">
+                        Create Account
+                    </button>
                 </div>
-
-                <!-- Forgot Password -->
-                <div id="forgotTab" class="auth-tab" style="display: none;">
-                    <h2>Reset Password 🔑</h2>
-                    <div class="input-group">
-                        <label>Email</label>
-                        <input type="email" id="forgotEmail" placeholder="Enter your email">
-                    </div>
-                    <button class="btn" onclick="resetPassword()">Send Reset Link</button>
+                <div class="text-center">
+                    <p class="text-white/80 text-sm">Already have an account? <button onclick="showSignIn()" class="text-white font-semibold underline">Sign In</button></p>
+                </div>
+            </div>
+            
+            <!-- Forgot Password Form -->
+            <div id="forgot-password-form" class="space-y-6 hidden">
+                <h2 class="text-2xl font-semibold text-center">Reset Password</h2>
+                <div class="space-y-4">
+                    <input type="email" id="forgot-email" placeholder="Enter your email" class="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50">
+                    <button onclick="resetPassword()" class="w-full bg-white text-purple-600 p-4 rounded-xl hover:bg-white/90 transition duration-200 font-semibold">
+                        Send Reset Link
+                    </button>
+                </div>
+                <div class="text-center">
+                    <button onclick="showSignIn()" class="text-white/80 hover:text-white text-sm underline">Back to Sign In</button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Dashboard Screen -->
-        <div id="dashboardScreen" class="screen">
-            <div class="glass-card">
-                <div class="chat-container">
-                    <div class="sidebar">
-                        <h3>💬 Active Chats</h3>
-                        <div id="activeChats"></div>
+    <!-- Main App -->
+    <div id="main-app" class="hidden h-screen flex">
+        <!-- Sidebar -->
+        <div class="w-80 glass-effect border-r border-white/10 flex flex-col mobile-hidden">
+            <!-- User Profile Header -->
+            <div class="p-6 border-b border-white/10">
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <img id="user-avatar" src="" alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-white/20">
+                        <div id="user-status-dot" class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 id="user-name" class="text-white font-semibold"></h3>
+                        <p id="user-username" class="text-white/60 text-sm"></p>
+                    </div>
+                    <button onclick="showProfile()" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                        <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="flex border-b border-white/10">
+                <button onclick="showTab('chats')" class="flex-1 p-4 text-white/80 hover:text-white hover:bg-white/5 transition-colors tab-btn active" data-tab="chats">
+                    <div class="flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        </svg>
+                        <span class="text-sm font-medium">Chats</span>
+                    </div>
+                </button>
+                <button onclick="showTab('friends')" class="flex-1 p-4 text-white/80 hover:text-white hover:bg-white/5 transition-colors tab-btn" data-tab="friends">
+                    <div class="flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                        </svg>
+                        <span class="text-sm font-medium">Friends</span>
+                    </div>
+                </button>
+                <button onclick="showTab('rooms')" class="flex-1 p-4 text-white/80 hover:text-white hover:bg-white/5 transition-colors tab-btn" data-tab="rooms">
+                    <div class="flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        <span class="text-sm font-medium">Rooms</span>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="flex-1 overflow-y-auto">
+                <!-- Chats Tab -->
+                <div id="chats-tab" class="tab-content">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-white font-semibold">Direct Messages</h3>
+                            <button onclick="showNewChatModal()" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                                <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div id="direct-messages-list" class="space-y-2">
+                            <!-- Direct messages will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Friends Tab -->
+                <div id="friends-tab" class="tab-content hidden">
+                    <div class="p-4">
+                        <div class="mb-4">
+                            <div class="flex space-x-2">
+                                <input type="text" id="search-users" placeholder="Search users..." class="flex-1 p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50">
+                                <button onclick="searchUsers()" class="px-4 py-3 bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
                         
-                        <h3 style="margin-top: 30px;">🌟 Online Friends</h3>
-                        <div id="onlineFriends"></div>
+                        <!-- Friend Requests -->
+                        <div class="mb-6">
+                            <h4 class="text-white/80 text-sm font-medium mb-3">Friend Requests</h4>
+                            <div id="friend-requests-list" class="space-y-2">
+                                <!-- Friend requests will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Friends List -->
+                        <div>
+                            <h4 class="text-white/80 text-sm font-medium mb-3">Friends</h4>
+                            <div id="friends-list" class="space-y-2">
+                                <!-- Friends will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Search Results -->
+                        <div id="search-results" class="mt-4 space-y-2 hidden">
+                            <!-- Search results will be populated here -->
+                        </div>
                     </div>
-                    
-                    <div class="chat-area">
-                        <div class="chat-header">
+                </div>
+
+                <!-- Rooms Tab -->
+                <div id="rooms-tab" class="tab-content hidden">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-white font-semibold">Chat Rooms</h3>
+                            <button onclick="showCreateRoomModal()" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                                <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div id="rooms-list" class="space-y-2">
+                            <!-- Rooms will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="flex-1 flex flex-col">
+            <!-- Welcome Screen -->
+            <div id="welcome-screen" class="flex-1 flex items-center justify-center">
+                <div class="text-center text-white/80">
+                    <div class="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-2">Welcome to ChatVibe</h2>
+                    <p class="text-lg">Select a chat to start messaging</p>
+                </div>
+            </div>
+
+            <!-- Chat Interface -->
+            <div id="chat-interface" class="hidden flex-1 flex flex-col">
+                <!-- Chat Header -->
+                <div class="glass-effect border-b border-white/10 p-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <button onclick="closeChatMobile()" class="md:hidden p-2 hover:bg-white/10 rounded-lg">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                                </svg>
+                            </button>
+                            <div class="relative">
+                                <img id="chat-avatar" src="" alt="Avatar" class="w-10 h-10 rounded-full object-cover">
+                                <div id="chat-status-dot" class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                            </div>
                             <div>
-                                <h3 id="currentChatName">Select a chat to start messaging</h3>
-                                <div id="currentChatStatus"></div>
-                            </div>
-                            <button class="btn" onclick="logout()">Logout</button>
-                        </div>
-                        
-                        <div class="chat-messages" id="chatMessages">
-                            <div style="text-align: center; opacity: 0.7; margin-top: 50px;">
-                                <h3>🚀 Welcome to FutureChat!</h3>
-                                <p>Select a friend or room to start chatting</p>
+                                <h3 id="chat-name" class="text-white font-semibold"></h3>
+                                <p id="chat-status" class="text-white/60 text-sm"></p>
                             </div>
                         </div>
-                        
-                        <div class="typing-indicator" id="typingIndicator">
-                            Someone is typing...
+                        <div class="flex items-center space-x-2">
+                            <button onclick="showChatInfo()" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                                <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </button>
                         </div>
-                        
-                        <div class="chat-input">
-                            <input type="text" id="messageInput" placeholder="Type your message..." style="flex: 1;">
-                            <button class="btn" onclick="sendMessage()">Send</button>
+                    </div>
+                </div>
+
+                <!-- Messages Area -->
+                <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-4">
+                    <!-- Messages will be populated here -->
+                </div>
+
+                <!-- Typing Indicator -->
+                <div id="typing-indicator" class="hidden px-4 py-2">
+                    <div class="flex items-center space-x-2 text-white/60">
+                        <div class="flex space-x-1">
+                            <div class="w-2 h-2 bg-white/60 rounded-full typing-indicator"></div>
+                            <div class="w-2 h-2 bg-white/60 rounded-full typing-indicator" style="animation-delay: 0.2s;"></div>
+                            <div class="w-2 h-2 bg-white/60 rounded-full typing-indicator" style="animation-delay: 0.4s;"></div>
                         </div>
+                        <span class="text-sm">Someone is typing...</span>
+                    </div>
+                </div>
+
+                <!-- Message Input -->
+                <div class="glass-effect border-t border-white/10 p-4">
+                    <div class="flex items-end space-x-3">
+                        <div class="flex-1 relative">
+                            <textarea id="message-input" placeholder="Type your message..." class="w-full p-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 resize-none max-h-32" rows="1"></textarea>
+                            <div class="absolute right-3 top-3 flex items-center space-x-2">
+                                <button onclick="toggleEmojiPicker()" class="p-1 hover:bg-white/10 rounded transition-colors">
+                                    <span class="text-lg">😊</span>
+                                </button>
+                                <div id="emoji-picker" class="emoji-picker">
+                                    <div class="grid grid-cols-6 gap-2">
+                                        <button onclick="addEmoji('😀')" class="p-2 hover:bg-gray-100 rounded">😀</button>
+                                        <button onclick="addEmoji('😂')" class="p-2 hover:bg-gray-100 rounded">😂</button>
+                                        <button onclick="addEmoji('😍')" class="p-2 hover:bg-gray-100 rounded">😍</button>
+                                        <button onclick="addEmoji('🥰')" class="p-2 hover:bg-gray-100 rounded">🥰</button>
+                                        <button onclick="addEmoji('😎')" class="p-2 hover:bg-gray-100 rounded">😎</button>
+                                        <button onclick="addEmoji('🤔')" class="p-2 hover:bg-gray-100 rounded">🤔</button>
+                                        <button onclick="addEmoji('👍')" class="p-2 hover:bg-gray-100 rounded">👍</button>
+                                        <button onclick="addEmoji('❤️')" class="p-2 hover:bg-gray-100 rounded">❤️</button>
+                                        <button onclick="addEmoji('🔥')" class="p-2 hover:bg-gray-100 rounded">🔥</button>
+                                        <button onclick="addEmoji('✨')" class="p-2 hover:bg-gray-100 rounded">✨</button>
+                                        <button onclick="addEmoji('🎉')" class="p-2 hover:bg-gray-100 rounded">🎉</button>
+                                        <button onclick="addEmoji('💯')" class="p-2 hover:bg-gray-100 rounded">💯</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="sendMessage()" class="p-3 bg-white text-purple-600 rounded-xl hover:bg-white/90 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Profile Screen -->
-        <div id="profileScreen" class="screen">
-            <div class="glass-card animate__animated animate__fadeInUp">
-                <h2>👤 My Profile</h2>
-                <div class="grid-2">
-                    <div>
-                        <div class="profile-pic" id="profilePicDisplay" style="width: 100px; height: 100px; font-size: 36px; margin: 20px auto;"></div>
-                        <div class="input-group">
-                            <label>Profile Picture URL</label>
-                            <input type="url" id="profilePicUrl" placeholder="Enter image URL">
-                            <button class="btn" onclick="updateProfilePic()">Update Picture</button>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="input-group">
-                            <label>Full Name</label>
-                            <input type="text" id="profileName">
-                        </div>
-                        <div class="input-group">
-                            <label>Age</label>
-                            <input type="number" id="profileAge">
-                        </div>
-                        <div class="input-group">
-                            <label>Gender</label>
-                            <select id="profileGender">
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <button class="btn" onclick="updateProfile()">Update Profile</button>
-                
-                <h3 style="margin-top: 40px;">📊 My Room Activity</h3>
-                <div id="roomActivity"></div>
+    <!-- Profile Modal -->
+    <div id="profile-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-effect rounded-3xl shadow-2xl w-full max-w-md p-8 text-white">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold">Profile</h2>
+                <button onclick="closeProfile()" class="p-2 hover:bg-white/10 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
             </div>
-        </div>
-
-        <!-- Friends Screen -->
-        <div id="friendsScreen" class="screen">
-            <div class="glass-card animate__animated animate__fadeInUp">
-                <h2>👥 Friends & Connections</h2>
-                
-                <div class="user-search">
-                    <div class="input-group">
-                        <label>🔍 Search Users</label>
-                        <input type="text" id="userSearch" placeholder="Search by username..." oninput="searchUsers()">
-                    </div>
-                    <div class="search-results" id="searchResults"></div>
+            
+            <div class="text-center mb-6">
+                <div class="relative inline-block">
+                    <img id="profile-avatar" src="" alt="Avatar" class="w-24 h-24 rounded-full object-cover mx-auto mb-4">
+                    <button onclick="changeProfilePicture()" class="absolute bottom-2 right-2 p-2 bg-white text-purple-600 rounded-full hover:bg-white/90 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </button>
                 </div>
-                
-                <div class="grid-2">
-                    <div>
-                        <h3>📨 Friend Requests</h3>
-                        <div id="friendRequests"></div>
-                    </div>
-                    <div>
-                        <h3>✅ My Friends</h3>
-                        <div id="friendsList"></div>
-                    </div>
+                <input type="file" id="avatar-input" accept="image/*" class="hidden" onchange="uploadProfilePicture()">
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Display Name</label>
+                    <input type="text" id="profile-name" class="w-full p-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Username</label>
+                    <input type="text" id="profile-username" class="w-full p-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Status</label>
+                    <select id="profile-status" class="w-full p-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white/50">
+                        <option value="online" class="bg-purple-600">Online</option>
+                        <option value="away" class="bg-purple-600">Away</option>
+                        <option value="busy" class="bg-purple-600">Busy</option>
+                        <option value="offline" class="bg-purple-600">Offline</option>
+                    </select>
                 </div>
             </div>
-        </div>
 
-        <!-- Rooms Screen -->
-        <div id="roomsScreen" class="screen">
-            <div class="glass-card animate__animated animate__fadeInUp">
-                <div class="grid-2">
-                    <div>
-                        <h2>💬 Chat Rooms</h2>
-                        <button class="btn" onclick="showCreateRoomModal()">+ Create Room</button>
-                    </div>
-                    <div>
-                        <button class="btn btn-secondary" onclick="showJoinRoomModal()">🔗 Join Private Room</button>
-                    </div>
+            <div class="flex space-x-4 mt-8">
+                <button onclick="updateProfile()" class="flex-1 bg-white text-purple-600 p-3 rounded-xl hover:bg-white/90 transition-colors font-semibold">
+                    Save Changes
+                </button>
+                <button onclick="signOut()" class="flex-1 bg-red-500/20 text-red-300 p-3 rounded-xl hover:bg-red-500/30 transition-colors font-semibold">
+                    Sign Out
+                </button>
+            </div>
+
+            <!-- Room Activity Section -->
+            <div class="mt-8 pt-6 border-t border-white/20">
+                <h3 class="text-lg font-semibold mb-4">Room Activity</h3>
+                <div id="room-activity-list" class="space-y-3 max-h-40 overflow-y-auto">
+                    <!-- Room activity will be populated here -->
                 </div>
-                
-                <div id="roomsList"></div>
             </div>
         </div>
     </div>
 
     <!-- Create Room Modal -->
-    <div id="createRoomModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeModal('createRoomModal')">&times;</span>
-            <h2>Create New Room</h2>
-            <div class="input-group">
-                <label>Room Name</label>
-                <input type="text" id="roomName" placeholder="Enter room name">
+    <div id="create-room-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-effect rounded-3xl shadow-2xl w-full max-w-md p-8 text-white">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold">Create Room</h2>
+                <button onclick="closeCreateRoom()" class="p-2 hover:bg-white/10 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
             </div>
-            <div class="input-group">
-                <label>Room Type</label>
-                <select id="roomType">
-                    <option value="public">Public Room</option>
-                    <option value="private">Private Room</option>
-                </select>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Room Name</label>
+                    <input type="text" id="room-name" placeholder="Enter room name" class="w-full p-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Description</label>
+                    <textarea id="room-description" placeholder="Room description (optional)" class="w-full p-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 resize-none h-24"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Room Type</label>
+                    <div class="flex space-x-4">
+                        <label class="flex items-center space-x-2">
+                            <input type="radio" name="room-type" value="public" checked class="text-white">
+                            <span>Public</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="radio" name="room-type" value="private" class="text-white">
+                            <span>Private</span>
+                        </label>
+                    </div>
+                </div>
             </div>
-            <div class="input-group">
-                <label>Description</label>
-                <input type="text" id="roomDescription" placeholder="Room description (optional)">
+
+            <div class="flex space-x-4 mt-8">
+                <button onclick="closeCreateRoom()" class="flex-1 bg-white/20 text-white p-3 rounded-xl hover:bg-white/30 transition-colors font-semibold">
+                    Cancel
+                </button>
+                <button onclick="createRoom()" class="flex-1 bg-white text-purple-600 p-3 rounded-xl hover:bg-white/90 transition-colors font-semibold">
+                    Create Room
+                </button>
             </div>
-            <button class="btn" onclick="createRoom()">Create Room</button>
         </div>
     </div>
 
-    <!-- Join Room Modal -->
-    <div id="joinRoomModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeModal('joinRoomModal')">&times;</span>
-            <h2>Join Private Room</h2>
-            <div class="input-group">
-                <label>Room Code</label>
-                <input type="text" id="roomCode" placeholder="Enter room invitation code">
+    <!-- New Chat Modal -->
+    <div id="new-chat-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-effect rounded-3xl shadow-2xl w-full max-w-md p-8 text-white">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold">New Chat</h2>
+                <button onclick="closeNewChat()" class="p-2 hover:bg-white/10 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
             </div>
-            <button class="btn" onclick="joinPrivateRoom()">Join Room</button>
+            
+            <div class="space-y-4">
+                <input type="text" id="new-chat-search" placeholder="Search friends..." class="w-full p-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50">
+                <div id="new-chat-friends" class="space-y-2 max-h-60 overflow-y-auto">
+                    <!-- Friends list for new chat will be populated here -->
+                </div>
+            </div>
         </div>
     </div>
 
@@ -711,93 +568,151 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-        const rtdb = firebase.database();
+        const storage = firebase.storage();
 
-        // Global Variables
+        // Global variables
         let currentUser = null;
         let currentChat = null;
-        let currentChatType = null; // 'friend' or 'room'
+        let unsubscribers = [];
+
+        // Utility Functions
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('notification-container');
+            const notification = document.createElement('div');
+            notification.className = `notification-slide p-4 rounded-xl shadow-lg text-white max-w-sm ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 
+                'bg-blue-500'
+            }`;
+            notification.textContent = message;
+            container.appendChild(notification);
+            
+            setTimeout(() => {
+                if (container.contains(notification)) {
+                    container.removeChild(notification);
+                }
+            }, 4000);
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+            if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
+            
+            return date.toLocaleDateString();
+        }
+
+        function generateAvatar(name) {
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
+            const color = colors[name.charCodeAt(0) % colors.length];
+            const initial = name.charAt(0).toUpperCase();
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 100, 100);
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 40px Inter';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(initial, 50, 50);
+            
+            return canvas.toDataURL();
+        }
 
         // Authentication Functions
+        function showSignUp() {
+            document.getElementById('signin-form').classList.add('hidden');
+            document.getElementById('signup-form').classList.remove('hidden');
+            document.getElementById('forgot-password-form').classList.add('hidden');
+        }
+
+        function showSignIn() {
+            document.getElementById('signin-form').classList.remove('hidden');
+            document.getElementById('signup-form').classList.add('hidden');
+            document.getElementById('forgot-password-form').classList.add('hidden');
+        }
+
+        function showForgotPassword() {
+            document.getElementById('signin-form').classList.add('hidden');
+            document.getElementById('signup-form').classList.add('hidden');
+            document.getElementById('forgot-password-form').classList.remove('hidden');
+        }
+
+        async function signUp() {
+            const name = document.getElementById('signup-name').value.trim();
+            const username = document.getElementById('signup-username').value.trim();
+            const email = document.getElementById('signup-email').value.trim();
+            const password = document.getElementById('signup-password').value;
+
+            if (!name || !username || !email || !password) {
+                showNotification('Please fill in all fields', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showNotification('Password must be at least 6 characters', 'error');
+                return;
+            }
+
+            try {
+                // Check if username is taken
+                const usernameQuery = await db.collection('users').where('username', '==', username).get();
+                if (!usernameQuery.empty) {
+                    showNotification('Username is already taken', 'error');
+                    return;
+                }
+
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+
+                // Create user profile
+                await db.collection('users').doc(user.uid).set({
+                    name: name,
+                    username: username,
+                    email: email,
+                    avatar: generateAvatar(name),
+                    status: 'online',
+                    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                showNotification('Account created successfully!');
+            } catch (error) {
+                showNotification(error.message, 'error');
+            }
+        }
+
         async function signIn() {
-            const email = document.getElementById('signinEmail').value;
-            const password = document.getElementById('signinPassword').value;
+            const email = document.getElementById('signin-email').value.trim();
+            const password = document.getElementById('signin-password').value;
 
             if (!email || !password) {
-                showNotification('Please fill in all fields', 'error');
+                showNotification('Please enter email and password', 'error');
                 return;
             }
 
             try {
                 await auth.signInWithEmailAndPassword(email, password);
-                showNotification('Welcome back! 🎉');
+                showNotification('Welcome back!');
             } catch (error) {
                 showNotification(error.message, 'error');
             }
-        }
-
-        async function signUp() {
-            const name = document.getElementById('signupName').value;
-            const username = document.getElementById('signupUsername').value;
-            const age = document.getElementById('signupAge').value;
-            const gender = document.getElementById('signupGender').value;
-            const mobile = document.getElementById('signupMobile').value;
-            const email = document.getElementById('signupEmail').value;
-            const password = document.getElementById('signupPassword').value;
-
-            if (!name || !username || !age || !gender || !mobile || !email || !password) {
-                showNotification('Please fill in all fields', 'error');
-                return;
-            }
-
-            try {
-                // Generate a unique username with timestamp to avoid duplicates
-                const uniqueUsername = username.toLowerCase() + '_' + Date.now().toString().slice(-4);
-                
-                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                const user = userCredential.user;
-
-                // Create user profile with simplified data structure
-                const userData = {
-                    name: name,
-                    username: uniqueUsername,
-                    originalUsername: username,
-                    age: parseInt(age),
-                    gender: gender,
-                    mobile: mobile,
-                    email: email,
-                    profilePic: '',
-                    createdAt: new Date().toISOString(),
-                    lastSeen: new Date().toISOString(),
-                    isOnline: true
-                };
-
-                // Store in localStorage as backup and primary storage
-                localStorage.setItem('userData_' + user.uid, JSON.stringify(userData));
-                
-                // Try to store in Firestore, but don't fail if it doesn't work
-                try {
-                    await db.collection('users').doc(user.uid).set(userData);
-                } catch (firestoreError) {
-                    console.log('Firestore not available, using localStorage only');
-                }
-
-                showNotification('Account created successfully! 🎉');
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        }
-
-        async function signInWithGoogle() {
-            showNotification('Google Sign-In is not available in this demo environment. Please use email/password authentication.', 'error');
-        }
-
-        async function signUpWithGoogle() {
-            showNotification('Google Sign-Up is not available in this demo environment. Please use email/password authentication.', 'error');
         }
 
         async function resetPassword() {
-            const email = document.getElementById('forgotEmail').value;
+            const email = document.getElementById('forgot-email').value.trim();
+            
             if (!email) {
                 showNotification('Please enter your email', 'error');
                 return;
@@ -805,850 +720,978 @@
 
             try {
                 await auth.sendPasswordResetEmail(email);
-                showNotification('Password reset email sent! Check your inbox 📧');
+                showNotification('Password reset email sent!');
+                showSignIn();
             } catch (error) {
                 showNotification(error.message, 'error');
             }
         }
 
-        async function logout() {
+        async function signOut() {
             try {
                 if (currentUser) {
                     await db.collection('users').doc(currentUser.uid).update({
-                        isOnline: false,
+                        status: 'offline',
                         lastSeen: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 }
+                
+                // Clean up listeners
+                unsubscribers.forEach(unsubscribe => unsubscribe());
+                unsubscribers = [];
+                
                 await auth.signOut();
-                showNotification('Goodbye! 👋');
+                showNotification('Signed out successfully');
             } catch (error) {
                 showNotification(error.message, 'error');
             }
         }
 
-        // Profile Functions
-        async function updateProfile() {
+        // App Initialization
+        function initializeApp() {
+            document.getElementById('loading-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            
+            loadUserProfile();
+            setupRealtimeListeners();
+            showTab('chats');
+        }
+
+        async function loadUserProfile() {
             if (!currentUser) return;
-
-            const name = document.getElementById('profileName').value;
-            const age = document.getElementById('profileAge').value;
-            const gender = document.getElementById('profileGender').value;
-
+            
             try {
-                // Get existing data
-                const localData = localStorage.getItem('userData_' + currentUser.uid);
-                let userData = localData ? JSON.parse(localData) : {};
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                const userData = userDoc.data();
                 
-                // Update data
-                userData.name = name;
-                userData.age = parseInt(age);
-                userData.gender = gender;
-                userData.lastUpdated = new Date().toISOString();
+                // Update UI with user data
+                document.getElementById('user-name').textContent = userData.name;
+                document.getElementById('user-username').textContent = '@' + userData.username;
+                document.getElementById('user-avatar').src = userData.avatar;
                 
-                // Save to localStorage
-                localStorage.setItem('userData_' + currentUser.uid, JSON.stringify(userData));
+                // Update profile modal
+                document.getElementById('profile-name').value = userData.name;
+                document.getElementById('profile-username').value = userData.username;
+                document.getElementById('profile-status').value = userData.status || 'online';
+                document.getElementById('profile-avatar').src = userData.avatar;
                 
-                // Try to update Firestore as well
-                try {
-                    await db.collection('users').doc(currentUser.uid).update({
-                        name: name,
-                        age: parseInt(age),
-                        gender: gender
-                    });
-                } catch (firestoreError) {
-                    console.log('Firestore update failed, using localStorage only');
-                }
-                
-                showNotification('Profile updated successfully! ✅');
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        }
-
-        async function updateProfilePic() {
-            if (!currentUser) return;
-
-            const profilePicUrl = document.getElementById('profilePicUrl').value;
-            if (!profilePicUrl) {
-                showNotification('Please enter a valid image URL', 'error');
-                return;
-            }
-
-            try {
-                // Get existing data
-                const localData = localStorage.getItem('userData_' + currentUser.uid);
-                let userData = localData ? JSON.parse(localData) : {};
-                
-                // Update profile pic
-                userData.profilePic = profilePicUrl;
-                userData.lastUpdated = new Date().toISOString();
-                
-                // Save to localStorage
-                localStorage.setItem('userData_' + currentUser.uid, JSON.stringify(userData));
-                
-                // Try to update Firestore as well
-                try {
-                    await db.collection('users').doc(currentUser.uid).update({
-                        profilePic: profilePicUrl
-                    });
-                } catch (firestoreError) {
-                    console.log('Firestore update failed, using localStorage only');
-                }
-                
-                document.getElementById('profilePicDisplay').innerHTML = `<img src="${profilePicUrl}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-                showNotification('Profile picture updated! 📸');
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        }
-
-        // Friends Functions
-        async function searchUsers() {
-            const searchTerm = document.getElementById('userSearch').value.toLowerCase();
-            const resultsDiv = document.getElementById('searchResults');
-
-            if (searchTerm.length < 2) {
-                resultsDiv.innerHTML = '';
-                return;
-            }
-
-            try {
-                const users = await db.collection('users')
-                    .where('username', '>=', searchTerm)
-                    .where('username', '<=', searchTerm + '\uf8ff')
-                    .limit(5)
-                    .get();
-
-                let html = '';
-                users.forEach(doc => {
-                    const user = doc.data();
-                    if (doc.id !== currentUser.uid) {
-                        html += `
-                            <div class="search-result-item" onclick="sendFriendRequest('${doc.id}', '${user.username}')">
-                                <div class="profile-pic" style="width: 30px; height: 30px; font-size: 12px; display: inline-block; margin-right: 10px;">
-                                    ${user.profilePic ? `<img src="${user.profilePic}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : user.name.charAt(0)}
-                                </div>
-                                <strong>@${user.username}</strong> - ${user.name}
-                                <span class="online-status ${user.isOnline ? '' : 'offline-status'}"></span>
-                            </div>
-                        `;
-                    }
+                // Update user status to online
+                await db.collection('users').doc(currentUser.uid).update({
+                    status: 'online',
+                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                resultsDiv.innerHTML = html;
+                
             } catch (error) {
-                console.error('Search error:', error);
+                console.error('Error loading user profile:', error);
             }
         }
 
-        async function sendFriendRequest(userId, username) {
-            if (!currentUser) return;
+        function setupRealtimeListeners() {
+            // Listen for direct messages
+            const messagesUnsubscribe = db.collection('directMessages')
+                .where('participants', 'array-contains', currentUser.uid)
+                .orderBy('lastMessageTime', 'desc')
+                .onSnapshot(snapshot => {
+                    loadDirectMessages(snapshot.docs);
+                });
+            unsubscribers.push(messagesUnsubscribe);
 
+            // Listen for friend requests
+            const friendRequestsUnsubscribe = db.collection('friendRequests')
+                .where('to', '==', currentUser.uid)
+                .where('status', '==', 'pending')
+                .onSnapshot(snapshot => {
+                    loadFriendRequests(snapshot.docs);
+                });
+            unsubscribers.push(friendRequestsUnsubscribe);
+
+            // Listen for friends
+            const friendsUnsubscribe = db.collection('friends')
+                .where('users', 'array-contains', currentUser.uid)
+                .onSnapshot(snapshot => {
+                    loadFriends(snapshot.docs);
+                });
+            unsubscribers.push(friendsUnsubscribe);
+
+            // Listen for rooms
+            const roomsUnsubscribe = db.collection('rooms')
+                .where('members', 'array-contains', currentUser.uid)
+                .orderBy('lastActivity', 'desc')
+                .onSnapshot(snapshot => {
+                    loadRooms(snapshot.docs);
+                });
+            unsubscribers.push(roomsUnsubscribe);
+        }
+
+        // Tab Management
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+            
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'text-white', 'bg-white/10');
+                btn.classList.add('text-white/80');
+            });
+            
+            const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
+            if (activeBtn) {
+                activeBtn.classList.add('active', 'text-white', 'bg-white/10');
+                activeBtn.classList.remove('text-white/80');
+            }
+        }
+
+        // Direct Messages
+        function loadDirectMessages(docs) {
+            const container = document.getElementById('direct-messages-list');
+            
+            if (docs.length === 0) {
+                container.innerHTML = '<p class="text-white/60 text-center py-8">No conversations yet</p>';
+                return;
+            }
+
+            container.innerHTML = docs.map(doc => {
+                const data = doc.data();
+                const otherUserId = data.participants.find(id => id !== currentUser.uid);
+                
+                return `
+                    <div class="p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors hover-lift" onclick="openDirectMessage('${doc.id}', '${otherUserId}')">
+                        <div class="flex items-center space-x-3">
+                            <div class="relative">
+                                <img src="${data.otherUserAvatar || generateAvatar(data.otherUserName || 'User')}" alt="Avatar" class="w-12 h-12 rounded-full object-cover">
+                                <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="text-white font-medium truncate">${data.otherUserName || 'Unknown User'}</h4>
+                                    <span class="text-white/60 text-xs">${formatTime(data.lastMessageTime)}</span>
+                                </div>
+                                <p class="text-white/60 text-sm truncate">${data.lastMessage || 'No messages yet'}</p>
+                            </div>
+                            ${data.unreadCount > 0 ? `<div class="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"><span class="text-white text-xs">${data.unreadCount}</span></div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function openDirectMessage(chatId, otherUserId) {
+            currentChat = { id: chatId, type: 'direct', otherUserId: otherUserId };
+            
             try {
-                // Check if already friends or request exists
+                // Get other user's data
+                const otherUserDoc = await db.collection('users').doc(otherUserId).get();
+                const otherUserData = otherUserDoc.data();
+                
+                // Update chat header
+                document.getElementById('chat-name').textContent = otherUserData.name;
+                document.getElementById('chat-avatar').src = otherUserData.avatar;
+                document.getElementById('chat-status').textContent = getStatusText(otherUserData.status, otherUserData.lastSeen);
+                
+                // Update status dot
+                const statusDot = document.getElementById('chat-status-dot');
+                statusDot.className = `absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${getStatusColor(otherUserData.status)}`;
+                
+                // Show chat interface
+                document.getElementById('welcome-screen').classList.add('hidden');
+                document.getElementById('chat-interface').classList.remove('hidden');
+                
+                // Load messages
+                loadChatMessages();
+                
+                // Mark messages as read
+                await markMessagesAsRead(chatId);
+                
+            } catch (error) {
+                console.error('Error opening direct message:', error);
+                showNotification('Error opening chat', 'error');
+            }
+        }
+
+        function loadChatMessages() {
+            if (!currentChat) return;
+            
+            const messagesContainer = document.getElementById('messages-container');
+            
+            // Clean up existing listener
+            if (currentChat.messagesUnsubscribe) {
+                currentChat.messagesUnsubscribe();
+            }
+            
+            // Listen for messages
+            currentChat.messagesUnsubscribe = db.collection('messages')
+                .where('chatId', '==', currentChat.id)
+                .orderBy('timestamp', 'asc')
+                .onSnapshot(snapshot => {
+                    const messages = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    
+                    renderMessages(messages);
+                });
+        }
+
+        function renderMessages(messages) {
+            const container = document.getElementById('messages-container');
+            
+            container.innerHTML = messages.map(message => {
+                const isOwn = message.senderId === currentUser.uid;
+                const messageTime = formatTime(message.timestamp);
+                
+                return `
+                    <div class="chat-bubble flex ${isOwn ? 'justify-end' : 'justify-start'}">
+                        <div class="max-w-xs lg:max-w-md">
+                            <div class="p-3 rounded-2xl ${isOwn ? 'bg-white text-purple-600' : 'bg-white/10 text-white'}">
+                                <p class="break-words">${message.text}</p>
+                                ${message.reactions && Object.keys(message.reactions).length > 0 ? `
+                                    <div class="flex flex-wrap gap-1 mt-2">
+                                        ${Object.entries(message.reactions).map(([emoji, users]) => `
+                                            <button onclick="toggleReaction('${message.id}', '${emoji}')" class="px-2 py-1 bg-white/20 rounded-full text-xs flex items-center space-x-1 hover:bg-white/30 transition-colors">
+                                                <span>${emoji}</span>
+                                                <span>${users.length}</span>
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <div class="flex items-center justify-between mt-1 px-1">
+                                <span class="text-white/40 text-xs">${messageTime}</span>
+                                ${isOwn ? `
+                                    <div class="flex items-center space-x-1">
+                                        <span class="message-status ${message.status === 'seen' ? 'message-seen' : 'message-delivered'}">
+                                            ${message.status === 'seen' ? '✓✓' : '✓'}
+                                        </span>
+                                        <button onclick="showReactionPicker('${message.id}')" class="text-white/40 hover:text-white/60 text-xs">
+                                            😊
+                                        </button>
+                                    </div>
+                                ` : `
+                                    <button onclick="showReactionPicker('${message.id}')" class="text-white/40 hover:text-white/60 text-xs">
+                                        😊
+                                    </button>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            
+            if (!text || !currentChat) return;
+            
+            try {
+                const messageData = {
+                    chatId: currentChat.id,
+                    senderId: currentUser.uid,
+                    text: text,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: 'delivered',
+                    reactions: {}
+                };
+                
+                // Add message to messages collection
+                await db.collection('messages').add(messageData);
+                
+                // Update chat's last message
+                const chatUpdate = {
+                    lastMessage: text,
+                    lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastMessageSender: currentUser.uid
+                };
+                
+                if (currentChat.type === 'direct') {
+                    await db.collection('directMessages').doc(currentChat.id).update(chatUpdate);
+                } else if (currentChat.type === 'room') {
+                    await db.collection('rooms').doc(currentChat.id).update({
+                        ...chatUpdate,
+                        lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                
+                input.value = '';
+                input.style.height = 'auto';
+                
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showNotification('Error sending message', 'error');
+            }
+        }
+
+        // Message input auto-resize
+        document.getElementById('message-input').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 128) + 'px';
+        });
+
+        // Send message on Enter
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Emoji Functions
+        function toggleEmojiPicker() {
+            const picker = document.getElementById('emoji-picker');
+            picker.classList.toggle('show');
+        }
+
+        function addEmoji(emoji) {
+            const input = document.getElementById('message-input');
+            input.value += emoji;
+            input.focus();
+            document.getElementById('emoji-picker').classList.remove('show');
+        }
+
+        async function toggleReaction(messageId, emoji) {
+            try {
+                const messageRef = db.collection('messages').doc(messageId);
+                const messageDoc = await messageRef.get();
+                const messageData = messageDoc.data();
+                
+                const reactions = messageData.reactions || {};
+                
+                if (!reactions[emoji]) {
+                    reactions[emoji] = [];
+                }
+                
+                const userIndex = reactions[emoji].indexOf(currentUser.uid);
+                if (userIndex > -1) {
+                    reactions[emoji].splice(userIndex, 1);
+                    if (reactions[emoji].length === 0) {
+                        delete reactions[emoji];
+                    }
+                } else {
+                    reactions[emoji].push(currentUser.uid);
+                }
+                
+                await messageRef.update({ reactions });
+                
+            } catch (error) {
+                console.error('Error toggling reaction:', error);
+            }
+        }
+
+        // Friends System
+        async function searchUsers() {
+            const query = document.getElementById('search-users').value.trim().toLowerCase();
+            const resultsContainer = document.getElementById('search-results');
+            
+            if (!query) {
+                resultsContainer.classList.add('hidden');
+                return;
+            }
+            
+            try {
+                const usersSnapshot = await db.collection('users')
+                    .where('username', '>=', query)
+                    .where('username', '<=', query + '\uf8ff')
+                    .limit(10)
+                    .get();
+                
+                const users = usersSnapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .filter(user => user.id !== currentUser.uid);
+                
+                if (users.length === 0) {
+                    resultsContainer.innerHTML = '<p class="text-white/60 text-center py-4">No users found</p>';
+                } else {
+                    resultsContainer.innerHTML = users.map(user => `
+                        <div class="p-3 bg-white/5 rounded-xl flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <img src="${user.avatar}" alt="Avatar" class="w-10 h-10 rounded-full object-cover">
+                                <div>
+                                    <h4 class="text-white font-medium">${user.name}</h4>
+                                    <p class="text-white/60 text-sm">@${user.username}</p>
+                                </div>
+                            </div>
+                            <button onclick="sendFriendRequest('${user.id}')" class="px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-white/90 transition-colors text-sm font-medium">
+                                Add Friend
+                            </button>
+                        </div>
+                    `).join('');
+                }
+                
+                resultsContainer.classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Error searching users:', error);
+                showNotification('Error searching users', 'error');
+            }
+        }
+
+        async function sendFriendRequest(userId) {
+            try {
+                // Check if request already exists
                 const existingRequest = await db.collection('friendRequests')
                     .where('from', '==', currentUser.uid)
                     .where('to', '==', userId)
                     .get();
-
+                
                 if (!existingRequest.empty) {
-                    showNotification('Friend request already sent!', 'error');
+                    showNotification('Friend request already sent', 'error');
                     return;
                 }
-
-                const friendship = await db.collection('friends')
+                
+                // Check if already friends
+                const existingFriendship = await db.collection('friends')
                     .where('users', 'array-contains', currentUser.uid)
                     .get();
-
-                let alreadyFriends = false;
-                friendship.forEach(doc => {
-                    if (doc.data().users.includes(userId)) {
-                        alreadyFriends = true;
-                    }
-                });
-
+                
+                const alreadyFriends = existingFriendship.docs.some(doc => 
+                    doc.data().users.includes(userId)
+                );
+                
                 if (alreadyFriends) {
-                    showNotification('Already friends!', 'error');
+                    showNotification('Already friends with this user', 'error');
                     return;
                 }
-
+                
                 await db.collection('friendRequests').add({
                     from: currentUser.uid,
                     to: userId,
                     status: 'pending',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
-
-                showNotification(`Friend request sent to @${username}! 📤`);
-                document.getElementById('userSearch').value = '';
-                document.getElementById('searchResults').innerHTML = '';
+                
+                showNotification('Friend request sent!');
+                
             } catch (error) {
-                showNotification(error.message, 'error');
+                console.error('Error sending friend request:', error);
+                showNotification('Error sending friend request', 'error');
             }
+        }
+
+        function loadFriendRequests(docs) {
+            const container = document.getElementById('friend-requests-list');
+            
+            if (docs.length === 0) {
+                container.innerHTML = '<p class="text-white/60 text-center py-4">No pending requests</p>';
+                return;
+            }
+            
+            Promise.all(docs.map(async doc => {
+                const data = doc.data();
+                const fromUserDoc = await db.collection('users').doc(data.from).get();
+                const fromUser = fromUserDoc.data();
+                
+                return `
+                    <div class="p-3 bg-white/5 rounded-xl flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <img src="${fromUser.avatar}" alt="Avatar" class="w-10 h-10 rounded-full object-cover">
+                            <div>
+                                <h4 class="text-white font-medium">${fromUser.name}</h4>
+                                <p class="text-white/60 text-sm">@${fromUser.username}</p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="respondToFriendRequest('${doc.id}', 'accepted')" class="px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm">
+                                Accept
+                            </button>
+                            <button onclick="respondToFriendRequest('${doc.id}', 'declined')" class="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm">
+                                Decline
+                            </button>
+                        </div>
+                    </div>
+                `;
+            })).then(htmlArray => {
+                container.innerHTML = htmlArray.join('');
+            });
         }
 
         async function respondToFriendRequest(requestId, response) {
             try {
                 const requestDoc = await db.collection('friendRequests').doc(requestId).get();
-                const request = requestDoc.data();
-
-                if (response === 'accept') {
+                const requestData = requestDoc.data();
+                
+                await db.collection('friendRequests').doc(requestId).update({
+                    status: response
+                });
+                
+                if (response === 'accepted') {
                     // Create friendship
                     await db.collection('friends').add({
-                        users: [request.from, request.to],
+                        users: [requestData.from, requestData.to],
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
-
-                    // Create direct message channel
-                    await db.collection('directMessages').add({
-                        users: [request.from, request.to],
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        lastMessage: '',
-                        lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-
-                    showNotification('Friend request accepted! 🎉');
+                    
+                    showNotification('Friend request accepted!');
                 } else {
                     showNotification('Friend request declined');
                 }
-
-                // Update request status
-                await db.collection('friendRequests').doc(requestId).update({
-                    status: response,
-                    respondedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                loadFriendRequests();
-                loadFriends();
+                
             } catch (error) {
-                showNotification(error.message, 'error');
+                console.error('Error responding to friend request:', error);
+                showNotification('Error responding to request', 'error');
+            }
+        }
+
+        function loadFriends(docs) {
+            const container = document.getElementById('friends-list');
+            
+            if (docs.length === 0) {
+                container.innerHTML = '<p class="text-white/60 text-center py-4">No friends yet</p>';
+                return;
+            }
+            
+            Promise.all(docs.map(async doc => {
+                const data = doc.data();
+                const friendId = data.users.find(id => id !== currentUser.uid);
+                const friendDoc = await db.collection('users').doc(friendId).get();
+                const friend = friendDoc.data();
+                
+                return `
+                    <div class="p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors hover-lift" onclick="startDirectMessage('${friendId}')">
+                        <div class="flex items-center space-x-3">
+                            <div class="relative">
+                                <img src="${friend.avatar}" alt="Avatar" class="w-10 h-10 rounded-full object-cover">
+                                <div class="absolute -bottom-1 -right-1 w-3 h-3 ${getStatusColor(friend.status)} rounded-full border-2 border-white"></div>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="text-white font-medium">${friend.name}</h4>
+                                <p class="text-white/60 text-sm">${getStatusText(friend.status, friend.lastSeen)}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            })).then(htmlArray => {
+                container.innerHTML = htmlArray.join('');
+            });
+        }
+
+        async function startDirectMessage(friendId) {
+            try {
+                // Check if direct message already exists
+                const existingChat = await db.collection('directMessages')
+                    .where('participants', 'array-contains', currentUser.uid)
+                    .get();
+                
+                let chatDoc = existingChat.docs.find(doc => 
+                    doc.data().participants.includes(friendId)
+                );
+                
+                if (!chatDoc) {
+                    // Create new direct message
+                    const friendDoc = await db.collection('users').doc(friendId).get();
+                    const friendData = friendDoc.data();
+                    const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+                    const currentUserData = currentUserDoc.data();
+                    
+                    const chatRef = await db.collection('directMessages').add({
+                        participants: [currentUser.uid, friendId],
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        lastMessage: '',
+                        lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
+                        otherUserName: friendData.name,
+                        otherUserAvatar: friendData.avatar,
+                        unreadCount: 0
+                    });
+                    
+                    chatDoc = await chatRef.get();
+                }
+                
+                await openDirectMessage(chatDoc.id, friendId);
+                showTab('chats');
+                
+            } catch (error) {
+                console.error('Error starting direct message:', error);
+                showNotification('Error starting chat', 'error');
+            }
+        }
+
+        // Status Functions
+        function getStatusColor(status) {
+            switch (status) {
+                case 'online': return 'bg-green-500';
+                case 'away': return 'bg-yellow-500';
+                case 'busy': return 'bg-red-500';
+                default: return 'bg-gray-500';
+            }
+        }
+
+        function getStatusText(status, lastSeen) {
+            if (status === 'online') return 'Online';
+            if (status === 'away') return 'Away';
+            if (status === 'busy') return 'Busy';
+            return `Last seen ${formatTime(lastSeen)}`;
+        }
+
+        // Profile Functions
+        function showProfile() {
+            document.getElementById('profile-modal').classList.remove('hidden');
+            loadRoomActivity();
+        }
+
+        function closeProfile() {
+            document.getElementById('profile-modal').classList.add('hidden');
+        }
+
+        function changeProfilePicture() {
+            document.getElementById('avatar-input').click();
+        }
+
+        async function uploadProfilePicture() {
+            const file = document.getElementById('avatar-input').files[0];
+            if (!file) return;
+            
+            try {
+                const storageRef = storage.ref(`avatars/${currentUser.uid}`);
+                const snapshot = await storageRef.put(file);
+                const downloadURL = await snapshot.ref.getDownloadURL();
+                
+                await db.collection('users').doc(currentUser.uid).update({
+                    avatar: downloadURL
+                });
+                
+                document.getElementById('user-avatar').src = downloadURL;
+                document.getElementById('profile-avatar').src = downloadURL;
+                
+                showNotification('Profile picture updated!');
+                
+            } catch (error) {
+                console.error('Error uploading profile picture:', error);
+                showNotification('Error uploading image', 'error');
+            }
+        }
+
+        async function updateProfile() {
+            const name = document.getElementById('profile-name').value.trim();
+            const username = document.getElementById('profile-username').value.trim();
+            const status = document.getElementById('profile-status').value;
+            
+            if (!name || !username) {
+                showNotification('Name and username are required', 'error');
+                return;
+            }
+            
+            try {
+                // Check if username is taken by another user
+                const usernameQuery = await db.collection('users')
+                    .where('username', '==', username)
+                    .get();
+                
+                const existingUser = usernameQuery.docs.find(doc => doc.id !== currentUser.uid);
+                if (existingUser) {
+                    showNotification('Username is already taken', 'error');
+                    return;
+                }
+                
+                await db.collection('users').doc(currentUser.uid).update({
+                    name: name,
+                    username: username,
+                    status: status
+                });
+                
+                document.getElementById('user-name').textContent = name;
+                document.getElementById('user-username').textContent = '@' + username;
+                
+                showNotification('Profile updated successfully!');
+                closeProfile();
+                
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                showNotification('Error updating profile', 'error');
+            }
+        }
+
+        async function loadRoomActivity() {
+            const container = document.getElementById('room-activity-list');
+            
+            try {
+                const roomsSnapshot = await db.collection('rooms')
+                    .where('creator', '==', currentUser.uid)
+                    .get();
+                
+                if (roomsSnapshot.empty) {
+                    container.innerHTML = '<p class="text-white/60 text-center py-4">No rooms created yet</p>';
+                    return;
+                }
+                
+                const activities = await Promise.all(roomsSnapshot.docs.map(async doc => {
+                    const roomData = doc.data();
+                    const activitySnapshot = await db.collection('roomActivity')
+                        .where('roomId', '==', doc.id)
+                        .orderBy('timestamp', 'desc')
+                        .limit(5)
+                        .get();
+                    
+                    const recentActivity = activitySnapshot.docs.map(activityDoc => {
+                        const activity = activityDoc.data();
+                        return {
+                            ...activity,
+                            roomName: roomData.name
+                        };
+                    });
+                    
+                    return recentActivity;
+                }));
+                
+                const flatActivities = activities.flat().sort((a, b) => 
+                    b.timestamp?.toDate() - a.timestamp?.toDate()
+                );
+                
+                container.innerHTML = flatActivities.slice(0, 10).map(activity => `
+                    <div class="p-3 bg-white/5 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-white text-sm font-medium">${activity.roomName}</p>
+                                <p class="text-white/60 text-xs">${activity.action} • ${formatTime(activity.timestamp)}</p>
+                            </div>
+                            <span class="text-white/40 text-xs">${Math.floor(activity.duration / 60000)}m</span>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading room activity:', error);
+                container.innerHTML = '<p class="text-white/60 text-center py-4">Error loading activity</p>';
             }
         }
 
         // Room Functions
+        function showCreateRoomModal() {
+            document.getElementById('create-room-modal').classList.remove('hidden');
+        }
+
+        function closeCreateRoom() {
+            document.getElementById('create-room-modal').classList.add('hidden');
+            document.getElementById('room-name').value = '';
+            document.getElementById('room-description').value = '';
+            document.querySelector('input[name="room-type"][value="public"]').checked = true;
+        }
+
         async function createRoom() {
-            if (!currentUser) return;
-
-            const name = document.getElementById('roomName').value;
-            const type = document.getElementById('roomType').value;
-            const description = document.getElementById('roomDescription').value;
-
+            const name = document.getElementById('room-name').value.trim();
+            const description = document.getElementById('room-description').value.trim();
+            const type = document.querySelector('input[name="room-type"]:checked').value;
+            
             if (!name) {
-                showNotification('Please enter a room name', 'error');
+                showNotification('Room name is required', 'error');
                 return;
             }
-
+            
             try {
-                const roomCode = type === 'private' ? generateRoomCode() : null;
+                const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+                const currentUserData = currentUserDoc.data();
                 
-                const roomData = {
+                await db.collection('rooms').add({
                     name: name,
-                    type: type,
                     description: description,
+                    type: type,
                     creator: currentUser.uid,
+                    creatorName: currentUserData.name,
                     members: [currentUser.uid],
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-                };
-
-                if (roomCode) {
-                    roomData.code = roomCode;
-                }
-
-                const roomRef = await db.collection('rooms').add(roomData);
-                
-                // Add creator to room members
-                await db.collection('roomMembers').add({
-                    roomId: roomRef.id,
-                    userId: currentUser.uid,
-                    joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    role: 'creator'
+                    lastActivity: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastMessage: '',
+                    lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
                 });
-
-                closeModal('createRoomModal');
-                showNotification(`Room "${name}" created successfully! ${roomCode ? `Code: ${roomCode}` : ''} 🎉`);
-                loadRooms();
+                
+                showNotification('Room created successfully!');
+                closeCreateRoom();
+                showTab('rooms');
+                
             } catch (error) {
-                showNotification(error.message, 'error');
+                console.error('Error creating room:', error);
+                showNotification('Error creating room', 'error');
             }
         }
 
-        async function joinPrivateRoom() {
-            if (!currentUser) return;
-
-            const code = document.getElementById('roomCode').value;
-            if (!code) {
-                showNotification('Please enter a room code', 'error');
+        function loadRooms(docs) {
+            const container = document.getElementById('rooms-list');
+            
+            if (docs.length === 0) {
+                container.innerHTML = '<p class="text-white/60 text-center py-8">No rooms yet</p>';
                 return;
             }
-
-            try {
-                const rooms = await db.collection('rooms').where('code', '==', code).get();
-                
-                if (rooms.empty) {
-                    showNotification('Invalid room code', 'error');
-                    return;
-                }
-
-                const roomDoc = rooms.docs[0];
-                const room = roomDoc.data();
-
-                // Check if already a member
-                const membership = await db.collection('roomMembers')
-                    .where('roomId', '==', roomDoc.id)
-                    .where('userId', '==', currentUser.uid)
-                    .get();
-
-                if (!membership.empty) {
-                    showNotification('You are already a member of this room', 'error');
-                    return;
-                }
-
-                // Add to room members
-                await db.collection('roomMembers').add({
-                    roomId: roomDoc.id,
-                    userId: currentUser.uid,
-                    joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    role: 'member'
-                });
-
-                // Update room members array
-                await db.collection('rooms').doc(roomDoc.id).update({
-                    members: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
-                });
-
-                closeModal('joinRoomModal');
-                showNotification(`Joined "${room.name}" successfully! 🎉`);
-                loadRooms();
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        }
-
-        // Chat Functions
-        function sendMessage() {
-            if (!currentUser || !currentChat) return;
-
-            const messageInput = document.getElementById('messageInput');
-            const message = messageInput.value.trim();
             
-            if (!message) return;
-
-            // Create message element
-            const messagesDiv = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message sent';
-            
-            const currentTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
-            messageDiv.innerHTML = `
-                <div>${message}</div>
-                <div class="message-info">
-                    ${currentTime}
-                    <span class="message-status">✓✓</span>
-                </div>
-                <div class="emoji-reactions">
-                    <button class="emoji-btn" onclick="showNotification('Reaction added! ❤️')">❤️</button>
-                    <button class="emoji-btn" onclick="showNotification('Reaction added! 😂')">😂</button>
-                    <button class="emoji-btn" onclick="showNotification('Reaction added! 🔥')">🔥</button>
-                    <button class="emoji-btn" onclick="showNotification('Reaction added! 👍')">👍</button>
-                </div>
-            `;
-            
-            messagesDiv.appendChild(messageDiv);
-            messageInput.value = '';
-            scrollToBottom();
-            
-            // Simulate typing indicator and response
-            if (currentChatType === 'friend') {
-                setTimeout(() => {
-                    document.getElementById('typingIndicator').style.display = 'block';
-                }, 1000);
-                
-                setTimeout(() => {
-                    document.getElementById('typingIndicator').style.display = 'none';
-                    addDemoResponse(message);
-                }, 3000);
-            }
-        }
-
-        function addDemoResponse(originalMessage) {
-            const responses = [
-                "That's interesting! Tell me more 😊",
-                "I totally agree with you!",
-                "Haha, that's so funny! 😂",
-                "Thanks for sharing that with me!",
-                "That sounds really cool!",
-                "I see what you mean 👍"
-            ];
-            
-            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-            const messagesDiv = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message received';
-            
-            const currentTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            const currentChatName = document.getElementById('currentChatName').textContent;
-            
-            messageDiv.innerHTML = `
-                <div>${randomResponse}</div>
-                <div class="message-info">
-                    ${currentChatName} • ${currentTime}
-                </div>
-                <div class="emoji-reactions">
-                    <button class="emoji-btn" onclick="showNotification('Reaction added! ❤️')">❤️</button>
-                    <button class="emoji-btn" onclick="showNotification('Reaction added! 😂')">😂</button>
-                    <button class="emoji-btn" onclick="showNotification('Reaction added! 🔥')">🔥</button>
-                    <button class="emoji-btn" onclick="showNotification('Reaction added! 👍')">👍</button>
-                </div>
-            `;
-            
-            messagesDiv.appendChild(messageDiv);
-            scrollToBottom();
-        }
-
-        async function openChat(chatId, chatType, chatName) {
-            currentChat = chatId;
-            currentChatType = chatType;
-            
-            document.getElementById('currentChatName').textContent = chatName;
-            document.getElementById('chatMessages').innerHTML = '';
-            
-            // Load messages
-            let messagesRef;
-            if (chatType === 'friend') {
-                messagesRef = db.collection('directMessages').doc(chatId).collection('messages');
-            } else {
-                messagesRef = db.collection('rooms').doc(chatId).collection('messages');
-            }
-            
-            messagesRef.orderBy('timestamp', 'asc').limit(50).onSnapshot(snapshot => {
-                loadMessages(snapshot);
-            });
-        }
-
-        async function loadMessages(snapshot) {
-            const messagesDiv = document.getElementById('chatMessages');
-            messagesDiv.innerHTML = '';
-
-            for (const doc of snapshot.docs) {
-                const message = doc.data();
-                const messageElement = await createMessageElement(message, doc.id);
-                messagesDiv.appendChild(messageElement);
-            }
-            
-            scrollToBottom();
-        }
-
-        async function createMessageElement(message, messageId) {
-            const messageDiv = document.createElement('div');
-            const isOwn = message.sender === currentUser.uid;
-            
-            messageDiv.className = `message ${isOwn ? 'sent' : 'received'}`;
-            
-            let senderName = 'Unknown';
-            if (!isOwn) {
-                try {
-                    const senderDoc = await db.collection('users').doc(message.sender).get();
-                    if (senderDoc.exists) {
-                        senderName = senderDoc.data().name;
-                    }
-                } catch (error) {
-                    console.error('Error fetching sender:', error);
-                }
-            }
-            
-            const timestamp = message.timestamp ? new Date(message.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Sending...';
-            
-            messageDiv.innerHTML = `
-                <div>${message.text}</div>
-                <div class="message-info">
-                    ${!isOwn ? senderName + ' • ' : ''}${timestamp}
-                    ${isOwn ? `<span class="message-status">✓✓</span>` : ''}
-                </div>
-                <div class="emoji-reactions">
-                    <button class="emoji-btn" onclick="addReaction('${messageId}', '❤️')">❤️</button>
-                    <button class="emoji-btn" onclick="addReaction('${messageId}', '😂')">😂</button>
-                    <button class="emoji-btn" onclick="addReaction('${messageId}', '🔥')">🔥</button>
-                    <button class="emoji-btn" onclick="addReaction('${messageId}', '👍')">👍</button>
-                </div>
-            `;
-            
-            return messageDiv;
-        }
-
-        async function addReaction(messageId, emoji) {
-            if (!currentUser || !currentChat) return;
-
-            try {
-                let messageRef;
-                if (currentChatType === 'friend') {
-                    messageRef = db.collection('directMessages').doc(currentChat).collection('messages').doc(messageId);
-                } else {
-                    messageRef = db.collection('rooms').doc(currentChat).collection('messages').doc(messageId);
-                }
-
-                await messageRef.update({
-                    [`reactions.${emoji}.${currentUser.uid}`]: true
-                });
-            } catch (error) {
-                console.error('Error adding reaction:', error);
-            }
-        }
-
-        // UI Functions
-        function showScreen(screenName) {
-            document.querySelectorAll('.screen').forEach(screen => {
-                screen.classList.remove('active');
-            });
-            document.getElementById(screenName + 'Screen').classList.add('active');
-            
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            event.target.classList.add('active');
-        }
-
-        function showAuthTab(tabName) {
-            document.querySelectorAll('.auth-tab').forEach(tab => {
-                tab.style.display = 'none';
-            });
-            document.getElementById(tabName + 'Tab').style.display = 'block';
-            
-            document.querySelectorAll('#authScreen .nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            event.target.classList.add('active');
-        }
-
-        function showCreateRoomModal() {
-            document.getElementById('createRoomModal').classList.add('active');
-        }
-
-        function showJoinRoomModal() {
-            document.getElementById('joinRoomModal').classList.add('active');
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('active');
-        }
-
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = 'notification';
-            notification.textContent = message;
-            
-            if (type === 'error') {
-                notification.style.background = 'linear-gradient(45deg, #e74c3c, #c0392b)';
-            }
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 4000);
-        }
-
-        function generateRoomCode() {
-            return Math.random().toString(36).substring(2, 8).toUpperCase();
-        }
-
-        function scrollToBottom() {
-            const chatMessages = document.getElementById('chatMessages');
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        // Load Data Functions
-        async function loadProfile() {
-            if (!currentUser) return;
-
-            try {
-                // Try localStorage first
-                const localData = localStorage.getItem('userData_' + currentUser.uid);
-                let userData = null;
-                
-                if (localData) {
-                    userData = JSON.parse(localData);
-                } else {
-                    // Fallback to Firestore
-                    try {
-                        const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                        if (userDoc.exists) {
-                            userData = userDoc.data();
-                        }
-                    } catch (firestoreError) {
-                        console.log('Firestore not available');
-                    }
-                }
-
-                if (userData) {
-                    document.getElementById('profileName').value = userData.name || '';
-                    document.getElementById('profileAge').value = userData.age || '';
-                    document.getElementById('profileGender').value = userData.gender || '';
-                    
-                    const profilePicDisplay = document.getElementById('profilePicDisplay');
-                    if (userData.profilePic) {
-                        profilePicDisplay.innerHTML = `<img src="${userData.profilePic}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-                    } else {
-                        profilePicDisplay.textContent = userData.name ? userData.name.charAt(0) : '?';
-                    }
-                } else {
-                    // Create default profile data
-                    const defaultData = {
-                        name: currentUser.email.split('@')[0],
-                        username: currentUser.email.split('@')[0] + '_' + Date.now().toString().slice(-4),
-                        age: 0,
-                        gender: '',
-                        mobile: '',
-                        email: currentUser.email,
-                        profilePic: '',
-                        createdAt: new Date().toISOString(),
-                        lastSeen: new Date().toISOString(),
-                        isOnline: true
-                    };
-                    localStorage.setItem('userData_' + currentUser.uid, JSON.stringify(defaultData));
-                    loadProfile(); // Reload with new data
-                }
-            } catch (error) {
-                console.error('Error loading profile:', error);
-            }
-        }
-
-        async function loadFriendRequests() {
-            if (!currentUser) return;
-
-            const requestsDiv = document.getElementById('friendRequests');
-            
-            // Demo friend requests
-            const demoRequests = [
-                { name: 'Alex Johnson', username: 'alex_dev', profilePic: '' },
-                { name: 'Sarah Chen', username: 'sarah_design', profilePic: '' }
-            ];
-
-            let html = '';
-            demoRequests.forEach((friend, index) => {
-                html += `
-                    <div class="friend-request-item friend-item">
-                        <div class="profile-pic">
-                            ${friend.name.charAt(0)}
-                        </div>
-                        <div style="flex: 1;">
-                            <strong>${friend.name}</strong><br>
-                            <small>@${friend.username}</small>
-                        </div>
-                        <div>
-                            <button class="btn" style="padding: 5px 15px; margin: 2px;" onclick="acceptDemoRequest(${index})">✓</button>
-                            <button class="btn" style="padding: 5px 15px; margin: 2px; background: #e74c3c;" onclick="declineDemoRequest(${index})">✗</button>
-                        </div>
-                    </div>
-                `;
-            });
-
-            requestsDiv.innerHTML = html || '<p style="opacity: 0.7;">No pending requests</p>';
-        }
-
-        function acceptDemoRequest(index) {
-            showNotification('Friend request accepted! 🎉');
-            loadFriendRequests();
-            loadFriends();
-        }
-
-        function declineDemoRequest(index) {
-            showNotification('Friend request declined');
-            loadFriendRequests();
-        }
-
-        async function loadFriends() {
-            if (!currentUser) return;
-
-            const friendsDiv = document.getElementById('friendsList');
-            const onlineFriendsDiv = document.getElementById('onlineFriends');
-            
-            // Demo friends data
-            const demoFriends = [
-                { id: 'demo1', name: 'Emma Wilson', username: 'emma_code', isOnline: true },
-                { id: 'demo2', name: 'Mike Rodriguez', username: 'mike_tech', isOnline: false },
-                { id: 'demo3', name: 'Lisa Park', username: 'lisa_ui', isOnline: true },
-                { id: 'demo4', name: 'David Kim', username: 'david_dev', isOnline: false }
-            ];
-
-            let friendsHtml = '';
-            let onlineHtml = '';
-
-            demoFriends.forEach(friend => {
-                const friendHtml = `
-                    <div class="friend-item" onclick="startDemoDirectMessage('${friend.id}', '${friend.name}')">
-                        <div class="profile-pic">
-                            ${friend.name.charAt(0)}
-                        </div>
-                        <div style="flex: 1;">
-                            <strong>${friend.name}</strong><br>
-                            <small>@${friend.username}</small>
-                        </div>
-                        <span class="online-status ${friend.isOnline ? '' : 'offline-status'}"></span>
-                    </div>
-                `;
-                
-                friendsHtml += friendHtml;
-                if (friend.isOnline) {
-                    onlineHtml += friendHtml;
-                }
-            });
-
-            friendsDiv.innerHTML = friendsHtml || '<p style="opacity: 0.7;">No friends yet</p>';
-            onlineFriendsDiv.innerHTML = onlineHtml || '<p style="opacity: 0.7;">No friends online</p>';
-        }
-
-        function startDemoDirectMessage(friendId, friendName) {
-            currentChat = friendId;
-            currentChatType = 'friend';
-            
-            document.getElementById('currentChatName').textContent = friendName;
-            document.getElementById('currentChatStatus').innerHTML = '<small style="color: #2ecc71;">● Online</small>';
-            
-            // Load demo messages
-            loadDemoMessages(friendName);
-            showScreen('dashboard');
-        }
-
-        function loadDemoMessages(friendName) {
-            const messagesDiv = document.getElementById('chatMessages');
-            const demoMessages = [
-                { text: `Hey! How are you doing?`, sender: 'friend', name: friendName, time: '10:30 AM' },
-                { text: `I'm doing great! Just working on some new projects. How about you?`, sender: 'me', time: '10:32 AM' },
-                { text: `That's awesome! I'd love to hear about your projects sometime.`, sender: 'friend', name: friendName, time: '10:35 AM' },
-                { text: `Sure! Let's catch up soon 😊`, sender: 'me', time: '10:36 AM' }
-            ];
-
-            messagesDiv.innerHTML = '';
-            
-            demoMessages.forEach(message => {
-                const messageDiv = document.createElement('div');
-                const isOwn = message.sender === 'me';
-                
-                messageDiv.className = `message ${isOwn ? 'sent' : 'received'}`;
-                messageDiv.innerHTML = `
-                    <div>${message.text}</div>
-                    <div class="message-info">
-                        ${!isOwn ? message.name + ' • ' : ''}${message.time}
-                        ${isOwn ? `<span class="message-status">✓✓</span>` : ''}
-                    </div>
-                    <div class="emoji-reactions">
-                        <button class="emoji-btn" onclick="showNotification('Reaction added! ❤️')">❤️</button>
-                        <button class="emoji-btn" onclick="showNotification('Reaction added! 😂')">😂</button>
-                        <button class="emoji-btn" onclick="showNotification('Reaction added! 🔥')">🔥</button>
-                        <button class="emoji-btn" onclick="showNotification('Reaction added! 👍')">👍</button>
-                    </div>
-                `;
-                messagesDiv.appendChild(messageDiv);
-            });
-            
-            scrollToBottom();
-        }
-
-        async function loadRooms() {
-            if (!currentUser) return;
-
-            try {
-                const memberships = await db.collection('roomMembers')
-                    .where('userId', '==', currentUser.uid)
-                    .get();
-
-                const roomsDiv = document.getElementById('roomsList');
-                let html = '';
-
-                for (const memberDoc of memberships.docs) {
-                    const membership = memberDoc.data();
-                    const roomDoc = await db.collection('rooms').doc(membership.roomId).get();
-                    
-                    if (roomDoc.exists) {
-                        const room = roomDoc.data();
-                        const memberCount = room.members ? room.members.length : 0;
-                        
-                        html += `
-                            <div class="room-item" onclick="openChat('${roomDoc.id}', 'room', '${room.name}')">
-                                <div class="profile-pic">
-                                    ${room.type === 'private' ? '🔒' : '🌐'}
+            container.innerHTML = docs.map(doc => {
+                const data = doc.data();
+                return `
+                    <div class="p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors hover-lift" onclick="joinRoom('${doc.id}')">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2">
+                                    <h4 class="text-white font-medium">${data.name}</h4>
+                                    <span class="px-2 py-1 text-xs rounded-full ${data.type === 'public' ? 'bg-green-500/20 text-green-300' : 'bg-blue-500/20 text-blue-300'}">${data.type}</span>
                                 </div>
-                                <div style="flex: 1;">
-                                    <strong>${room.name}</strong><br>
-                                    <small>${room.description || 'No description'}</small>
-                                    <div class="room-stats">
-                                        ${memberCount} members • ${room.type} room
-                                        ${room.code ? ` • Code: ${room.code}` : ''}
-                                    </div>
-                                </div>
-                                ${membership.role === 'creator' ? '<span style="color: #feca57;">👑</span>' : ''}
+                                <p class="text-white/60 text-sm truncate">${data.description || 'No description'}</p>
+                                <p class="text-white/40 text-xs">${data.members.length} members • ${formatTime(data.lastActivity)}</p>
                             </div>
-                        `;
-                    }
-                }
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
 
-                roomsDiv.innerHTML = html || '<p style="opacity: 0.7;">No rooms joined yet</p>';
+        async function joinRoom(roomId) {
+            currentChat = { id: roomId, type: 'room' };
+            
+            try {
+                const roomDoc = await db.collection('rooms').doc(roomId).get();
+                const roomData = roomDoc.data();
+                
+                // Update chat header
+                document.getElementById('chat-name').textContent = roomData.name;
+                document.getElementById('chat-avatar').src = generateAvatar(roomData.name);
+                document.getElementById('chat-status').textContent = `${roomData.members.length} members`;
+                
+                // Hide status dot for rooms
+                document.getElementById('chat-status-dot').style.display = 'none';
+                
+                // Show chat interface
+                document.getElementById('welcome-screen').classList.add('hidden');
+                document.getElementById('chat-interface').classList.remove('hidden');
+                
+                // Load messages
+                loadChatMessages();
+                
+                // Track room activity
+                await db.collection('roomActivity').add({
+                    roomId: roomId,
+                    userId: currentUser.uid,
+                    action: 'joined',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
             } catch (error) {
-                console.error('Error loading rooms:', error);
+                console.error('Error joining room:', error);
+                showNotification('Error joining room', 'error');
+            }
+        }
+
+        // New Chat Modal
+        function showNewChatModal() {
+            document.getElementById('new-chat-modal').classList.remove('hidden');
+            loadNewChatFriends();
+        }
+
+        function closeNewChat() {
+            document.getElementById('new-chat-modal').classList.add('hidden');
+        }
+
+        async function loadNewChatFriends() {
+            const container = document.getElementById('new-chat-friends');
+            
+            try {
+                const friendsSnapshot = await db.collection('friends')
+                    .where('users', 'array-contains', currentUser.uid)
+                    .get();
+                
+                if (friendsSnapshot.empty) {
+                    container.innerHTML = '<p class="text-white/60 text-center py-4">No friends to chat with</p>';
+                    return;
+                }
+                
+                const friends = await Promise.all(friendsSnapshot.docs.map(async doc => {
+                    const data = doc.data();
+                    const friendId = data.users.find(id => id !== currentUser.uid);
+                    const friendDoc = await db.collection('users').doc(friendId).get();
+                    return { id: friendId, ...friendDoc.data() };
+                }));
+                
+                container.innerHTML = friends.map(friend => `
+                    <div class="p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors" onclick="startDirectMessage('${friend.id}'); closeNewChat();">
+                        <div class="flex items-center space-x-3">
+                            <div class="relative">
+                                <img src="${friend.avatar}" alt="Avatar" class="w-10 h-10 rounded-full object-cover">
+                                <div class="absolute -bottom-1 -right-1 w-3 h-3 ${getStatusColor(friend.status)} rounded-full border-2 border-white"></div>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-medium">${friend.name}</h4>
+                                <p class="text-white/60 text-sm">@${friend.username}</p>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading friends for new chat:', error);
+                container.innerHTML = '<p class="text-white/60 text-center py-4">Error loading friends</p>';
+            }
+        }
+
+        // Utility Functions
+        async function markMessagesAsRead(chatId) {
+            try {
+                const messagesSnapshot = await db.collection('messages')
+                    .where('chatId', '==', chatId)
+                    .where('senderId', '!=', currentUser.uid)
+                    .where('status', '==', 'delivered')
+                    .get();
+                
+                const batch = db.batch();
+                messagesSnapshot.docs.forEach(doc => {
+                    batch.update(doc.ref, { status: 'seen' });
+                });
+                
+                await batch.commit();
+                
+            } catch (error) {
+                console.error('Error marking messages as read:', error);
+            }
+        }
+
+        function closeChatMobile() {
+            document.getElementById('welcome-screen').classList.remove('hidden');
+            document.getElementById('chat-interface').classList.add('hidden');
+            currentChat = null;
+        }
+
+        function showChatInfo() {
+            if (currentChat && currentChat.type === 'room') {
+                showNotification('Room info feature coming soon!', 'info');
+            } else {
+                showNotification('Chat info feature coming soon!', 'info');
             }
         }
 
         // Auth State Observer
-        auth.onAuthStateChanged(async (user) => {
+        auth.onAuthStateChanged(user => {
             if (user) {
                 currentUser = user;
-                
-                // Update online status
-                await db.collection('users').doc(user.uid).update({
-                    isOnline: true,
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                // Show authenticated screens
-                document.getElementById('dashboardTab').style.display = 'block';
-                document.getElementById('profileTab').style.display = 'block';
-                document.getElementById('friendsTab').style.display = 'block';
-                document.getElementById('roomsTab').style.display = 'block';
-                
-                showScreen('dashboard');
-                
-                // Load data
-                loadProfile();
-                loadFriendRequests();
-                loadFriends();
-                loadRooms();
-                
+                document.getElementById('auth-screen').classList.add('hidden');
+                setTimeout(() => {
+                    initializeApp();
+                }, 1000);
             } else {
                 currentUser = null;
-                currentChat = null;
-                currentChatType = null;
-                
-                // Hide authenticated screens
-                document.getElementById('dashboardTab').style.display = 'none';
-                document.getElementById('profileTab').style.display = 'none';
-                document.getElementById('friendsTab').style.display = 'none';
-                document.getElementById('roomsTab').style.display = 'none';
-                
-                showScreen('auth');
-            }
-        });
-
-        // Message input enter key
-        document.getElementById('messageInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
+                document.getElementById('loading-screen').classList.add('hidden');
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('main-app').classList.add('hidden');
             }
         });
 
         // Close modals when clicking outside
-        document.querySelectorAll('.modal').forEach(modal => {
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    modal.classList.remove('active');
-                }
-            });
+        document.addEventListener('click', function(e) {
+            const emojiPicker = document.getElementById('emoji-picker');
+            if (!e.target.closest('.emoji-picker') && !e.target.closest('button[onclick="toggleEmojiPicker()"]')) {
+                emojiPicker.classList.remove('show');
+            }
         });
 
-        // Initialize animations
-        gsap.from('.header h1', {duration: 1, y: -50, opacity: 0, ease: 'bounce.out'});
-        gsap.from('.nav-tabs', {duration: 0.8, y: 30, opacity: 0, delay: 0.3});
-        gsap.from('.glass-card', {duration: 1, scale: 0.9, opacity: 0, delay: 0.5});
+        // Initialize loading screen
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                if (!currentUser) {
+                    document.getElementById('loading-screen').classList.add('hidden');
+                }
+            }, 2000);
+        });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9689fa8670e28e7b',t:'MTc1NDA5OTk5NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'968a1a12a0955981',t:'MTc1NDEwMTI4Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
