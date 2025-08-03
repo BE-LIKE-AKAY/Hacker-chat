@@ -1,1057 +1,1054 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hacker Chat</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts - Space Mono for hacker theme -->
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        /* Custom Scrollbar Styles for a hacker look */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #1a202c; /* gray-900 */
-            border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #065F46; /* green-800 */
-            border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #047857; /* green-700 */
-        }
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { initializeApp } from 'firebase/app';
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  sendPasswordResetEmail,
+  updateProfile,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  onAuthStateChanged,
+  signInAnonymously,
+  signInWithCustomToken
+} from 'firebase/auth';
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  addDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  collection,
+  query,
+  where,
+  getDocs,
+  serverTimestamp
+} from 'firebase/firestore';
 
-        /* Basic body styling for font and background */
-        body {
-            font-family: 'Space Mono', monospace;
-            background-color: #0d1117; /* Even darker background */
-            color: #00ff00; /* Neon green text */
-            overflow: hidden; /* Prevent body scroll */
-        }
+// Ensure Prism.js is loaded in the HTML file for syntax highlighting
+// Example:
+// <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.27.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+// <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.27.0/prism.min.js"></script>
+// <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.27.0/components/prism-json.min.js"></script>
+// <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.27.0/components/prism-javascript.min.js"></script>
 
-        /* Modal backdrop */
-        .modal-backdrop {
-            background-color: rgba(0, 0, 0, 0.75);
-        }
 
-        /* Hacker-style input focus */
-        input:focus, textarea:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(0, 255, 0, 0.5); /* Neon green glow */
-        }
+// Global variables provided by the Canvas environment
+// Ensure these are defined in your environment or provide fallbacks
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const firebaseConfig = typeof __firebase_config !== 'undefined'
+  ? JSON.parse(__firebase_config)
+  : {
+      apiKey: "AIzaSyB_Q5EseET7WykS4WcIQs1Y7a-CMmcbnp8",
+      authDomain: "aapurti-9e385.firebaseapp.com",
+      databaseURL: "https://aapurti-9e385-default-rtdb.firebaseio.com",
+      projectId: "aapurti-9e385",
+      storageBucket: "aapurti-9e385.appspot.com",
+      messagingSenderId: "72618637937",
+      appId: "1:72618637937:web:e89cca640172708f23f9d0",
+      measurementId: "G-4C479V87YN"
+    };
+const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        /* Button hover effects */
-        button {
-            transition: all 0.3s ease-in-out;
-        }
-        button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
-        }
-    </style>
-</head>
-<body class="flex h-screen bg-gray-950 text-green-400 font-mono overflow-hidden">
+// Initialize Firebase App
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-    <!-- Authentication Container (Initially shown) -->
-    <div id="authContainer" class="flex flex-col items-center justify-center min-h-screen w-full p-4">
-        <div class="bg-gray-900 p-8 rounded-lg border-2 border-green-700 shadow-xl shadow-green-500/30 w-full max-w-md">
-            <h1 class="text-3xl font-bold text-green-300 mb-6 text-center animate-pulse">
-                <span class="text-green-500">_</span>HackerChat Access
-            </h1>
+// Helper function to format dates
+const formatDate = (timestamp) => {
+  if (!timestamp) return 'N/A';
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  return date.toLocaleString();
+};
 
-            <!-- Login Form -->
-            <div id="loginForm" class="auth-form">
-                <h2 class="text-xl font-semibold mb-4 text-green-300 border-b border-green-800 pb-2">Login</h2>
-                <div class="mb-4">
-                    <label for="loginEmail" class="block text-green-400 text-sm mb-2">Email:</label>
-                    <input type="email" id="loginEmail" class="w-full p-2 rounded-md bg-gray-800 border border-green-700 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-green-500" placeholder="user@example.com">
-                </div>
-                <div class="mb-6">
-                    <label for="loginPassword" class="block text-green-400 text-sm mb-2">Password:</label>
-                    <input type="password" id="loginPassword" class="w-full p-2 rounded-md bg-gray-800 border border-green-700 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-green-500" placeholder="********">
-                </div>
-                <button id="loginButton" class="w-full py-2 px-4 bg-green-700 hover:bg-green-600 rounded-lg text-white font-bold transition-colors">
-                    [LOGIN]
-                </button>
-                <p id="loginError" class="text-red-500 text-sm mt-2 text-center hidden"></p>
-                <div class="flex justify-between items-center mt-4 text-sm">
-                    <button id="showSignupButton" class="text-green-400 hover:text-green-300">[CREATE ACCOUNT]</button>
-                    <button id="showForgotPasswordButton" class="text-gray-500 hover:text-gray-400">[FORGOT PASSWORD?]</button>
-                </div>
-            </div>
-
-            <!-- Signup Form (Hidden by default) -->
-            <div id="signupForm" class="auth-form hidden">
-                <h2 class="text-xl font-semibold mb-4 text-green-300 border-b border-green-800 pb-2">Create Account</h2>
-                <div class="mb-3">
-                    <label for="signupName" class="block text-green-400 text-sm mb-1">Display Name:</label>
-                    <input type="text" id="signupName" class="w-full p-2 rounded-md bg-gray-800 border border-green-700 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-green-500" placeholder="Your Hacker Alias">
-                </div>
-                <div class="mb-3">
-                    <label for="signupEmail" class="block text-green-400 text-sm mb-1">Email:</label>
-                    <input type="email" id="signupEmail" class="w-full p-2 rounded-md bg-gray-800 border border-green-700 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-green-500" placeholder="newuser@example.com">
-                </div>
-                <div class="mb-3">
-                    <label for="signupPassword" class="block text-green-400 text-sm mb-1">Password:</label>
-                    <input type="password" id="signupPassword" class="w-full p-2 rounded-md bg-gray-800 border border-green-700 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-green-500" placeholder="********">
-                </div>
-                <div class="mb-3">
-                    <label for="signupMobile" class="block text-green-400 text-sm mb-1">Mobile (Optional):</label>
-                    <input type="tel" id="signupMobile" class="w-full p-2 rounded-md bg-gray-800 border border-green-700 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-green-500" placeholder="+1234567890">
-                </div>
-                <div class="mb-3">
-                    <label for="signupDOB" class="block text-green-400 text-sm mb-1">Date of Birth (Optional):</label>
-                    <input type="date" id="signupDOB" class="w-full p-2 rounded-md bg-gray-800 border border-green-700 text-white focus:outline-none focus:ring-1 focus:ring-green-500">
-                </div>
-                <div class="mb-6">
-                    <label for="signupGender" class="block text-green-400 text-sm mb-1">Gender (Optional):</label>
-                    <select id="signupGender" class="w-full p-2 rounded-md bg-gray-800 border border-green-700 text-white focus:outline-none focus:ring-1 focus:ring-green-500">
-                        <option value="">Select</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
-                        <option value="prefer_not_say">Prefer not to say</option>
-                    </select>
-                </div>
-                <button id="signupButton" class="w-full py-2 px-4 bg-green-700 hover:bg-green-600 rounded-lg text-white font-bold transition-colors">
-                    [SIGN UP]
-                </button>
-                <p id="signupError" class="text-red-500 text-sm mt-2 text-center hidden"></p>
-                <button id="backToLoginFromSignup" class="w-full text-gray-500 hover:text-gray-400 mt-4">[BACK TO LOGIN]</button>
-            </div>
-
-            <!-- Forgot Password Form (Hidden by default) -->
-            <div id="forgotPasswordForm" class="auth-form hidden">
-                <h2 class="text-xl font-semibold mb-4 text-green-300 border-b border-green-800 pb-2">Forgot Password</h2>
-                <div class="mb-6">
-                    <label for="forgotEmail" class="block text-green-400 text-sm mb-2">Enter your email:</label>
-                    <input type="email" id="forgotEmail" class="w-full p-2 rounded-md bg-gray-800 border border-green-700 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-green-500" placeholder="your_email@example.com">
-                </div>
-                <button id="resetPasswordButton" class="w-full py-2 px-4 bg-green-700 hover:bg-green-600 rounded-lg text-white font-bold transition-colors">
-                    [RESET PASSWORD]
-                </button>
-                <p id="forgotPasswordMessage" class="text-green-500 text-sm mt-2 text-center hidden"></p>
-                <p id="forgotPasswordError" class="text-red-500 text-sm mt-2 text-center hidden"></p>
-                <button id="backToLoginFromForgot" class="w-full text-gray-500 hover:text-gray-400 mt-4">[BACK TO LOGIN]</button>
-            </div>
-
+// Reusable Modal Component
+const Modal = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg mx-auto p-6 relative transform transition-all sm:my-8 sm:align-middle sm:max-w-xl sm:w-full">
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{title}</h3>
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+        <div className="text-gray-700 dark:text-gray-300">
+          {children}
         </div>
+      </div>
     </div>
+  );
+};
 
-    <!-- Main Chat Application (Hidden initially, shown after authentication) -->
-    <div id="mainChatApp" class="hidden flex-grow flex h-screen w-full">
-        <!-- Sidebar - Chat Rooms & Online Users -->
-        <div class="w-1/4 bg-gray-900 border-r-2 border-green-700 p-4 flex flex-col shadow-lg shadow-green-500/20">
-            <div class="flex items-center justify-between mb-6 pb-4 border-b-2 border-green-700">
-                <h1 class="text-2xl font-bold text-green-300 animate-pulse">
-                    <span class="text-green-500">_</span>HackerChat
-                </h1>
-                <button id="profileButton" class="p-2 rounded-full bg-green-700 hover:bg-green-600 transition-all duration-300 transform hover:scale-105 shadow-md shadow-green-500/30" title="Update Profile">
-                    <img id="profilePicDisplay" src="https://placehold.co/40x40/00FF00/000000?text=U" alt="Profile" class="w-8 h-8 rounded-full border-2 border-green-400 object-cover">
-                </button>
-            </div>
+// Loading Spinner Component
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center py-4">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+  </div>
+);
 
-            <!-- User ID Display -->
-            <div class="mb-4 text-sm text-gray-400 break-words">
-                <span class="text-green-500">User ID:</span> <span id="currentUserId">Loading...</span>
-            </div>
+// Auth Forms (Sign In / Sign Up)
+const AuthPage = ({ onAuthSuccess, showMessage }) => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [loading, setLoading] = useState(false);
 
-            <!-- Chat Rooms -->
-            <h2 class="text-xl font-semibold mb-3 text-green-300 border-b border-green-800 pb-2">
-                <span class="text-green-500">_</span>Rooms
-            </h2>
-            <div id="chatRoomsList" class="flex-grow overflow-y-auto custom-scrollbar pr-2">
-                <!-- Chat rooms will be dynamically loaded here -->
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (isLogin) {
+        await signInWithEmailAndPassword(auth, email, password);
+        showMessage('Logged in successfully!', 'success');
+      } else {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(userCredential.user, { displayName });
+        showMessage('Account created successfully!', 'success');
+      }
+      onAuthSuccess();
+    } catch (error) {
+      showMessage(`Authentication Error: ${error.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      showMessage('Please enter your email to reset password.', 'warning');
+      return;
+    }
+    setLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      showMessage('Password reset email sent. Check your inbox.', 'success');
+    } catch (error) {
+      showMessage(`Password Reset Error: ${error.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
+      <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-md">
+        <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-6">
+          {isLogin ? 'Login' : 'Sign Up'}
+        </h2>
+        <form onSubmit={handleAuth} className="space-y-4">
+          {!isLogin && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="displayName">Display Name</label>
+              <input
+                type="text"
+                id="displayName"
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                required={!isLogin}
+              />
             </div>
-            <button id="createRoomButton" class="mt-4 w-full py-2 px-4 bg-green-700 hover:bg-green-600 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-md shadow-green-500/30 text-white font-bold">
-                [CREATE NEW ROOM]
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition-colors duration-200 shadow-md"
+            disabled={loading}
+          >
+            {loading ? <LoadingSpinner /> : (isLogin ? 'Login' : 'Sign Up')}
+          </button>
+        </form>
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-blue-600 hover:underline text-sm"
+          >
+            {isLogin ? 'Need an account? Sign Up' : 'Already have an account? Login'}
+          </button>
+          {isLogin && (
+            <button
+              onClick={handlePasswordReset}
+              className="block mt-2 text-blue-600 hover:underline text-sm mx-auto"
+            >
+              Forgot Password?
             </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
-            <!-- Online Users -->
-            <h2 class="text-xl font-semibold mt-6 mb-3 text-green-300 border-b border-green-800 pb-2">
-                <span class="text-green-500">_</span>Online Users (<span id="onlineUsersCount">0</span>)
-            </h2>
-            <div id="onlineUsersList" class="overflow-y-auto custom-scrollbar pr-2 h-40">
-                <!-- Online users will be dynamically loaded here -->
-            </div>
+// Request Tester Component
+const RequestTester = ({ user, showMessage, logActivity }) => {
+  const [url, setUrl] = useState('https://jsonplaceholder.typicode.com/posts/1');
+  const [method, setMethod] = useState('GET');
+  const [headers, setHeaders] = useState('{}');
+  const [body, setBody] = useState('');
+  const [responseStatus, setResponseStatus] = useState(null);
+  const [responseHeaders, setResponseHeaders] = useState('');
+  const [responseBody, setResponseBody] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [shareLink, setShareLink] = useState('');
+  const [showFullResponseModal, setShowFullResponseModal] = useState(false);
+  const [fullResponseBody, setFullResponseBody] = useState('');
 
-            <!-- Room Activity Section -->
-            <h2 class="text-xl font-semibold mt-6 mb-3 text-green-300 border-b border-green-800 pb-2">
-                <span class="text-green-500">_</span>My Room Activity
-            </h2>
-            <div id="userRoomActivity" class="overflow-y-auto custom-scrollbar pr-2 h-40">
-                <!-- User room activity will be dynamically loaded here -->
-            </div>
-            <button id="logoutButton" class="mt-4 w-full py-2 px-4 bg-red-700 hover:bg-red-600 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-md shadow-red-500/30 text-white font-bold">
-                [LOGOUT]
+  const responseBodyRef = useRef(null);
+  const responseHeadersRef = useRef(null);
+
+  const applySyntaxHighlighting = useCallback(() => {
+    if (window.Prism) {
+      if (responseBodyRef.current) {
+        window.Prism.highlightElement(responseBodyRef.current);
+      }
+      if (responseHeadersRef.current) {
+        window.Prism.highlightElement(responseHeadersRef.current);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    applySyntaxHighlighting();
+  }, [responseBody, responseHeaders, applySyntaxHighlighting]);
+
+  const getStatusCodeColor = (status) => {
+    if (!status) return 'text-gray-500';
+    if (status >= 200 && status < 300) return 'text-green-500';
+    if (status >= 300 && status < 400) return 'text-yellow-500';
+    return 'text-red-500';
+  };
+
+  const sendRequest = async () => {
+    setLoading(true);
+    setResponseStatus(null);
+    setResponseHeaders('');
+    setResponseBody('');
+    setShareLink('');
+    setFullResponseBody('');
+
+    let parsedHeaders = {};
+    try {
+      parsedHeaders = JSON.parse(headers);
+    } catch (e) {
+      showMessage('Invalid Headers JSON. Please ensure it is valid JSON.', 'error');
+      setLoading(false);
+      return;
+    }
+
+    const requestOptions = {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json', // Default content type for body
+        ...parsedHeaders
+      },
+    };
+
+    if (method !== 'GET' && method !== 'HEAD') {
+      try {
+        // Attempt to parse body as JSON, otherwise send as plain text
+        requestOptions.body = JSON.stringify(JSON.parse(body));
+      } catch (e) {
+        requestOptions.body = body; // Send as plain text if not valid JSON
+        if (!parsedHeaders['Content-Type']) {
+          requestOptions.headers['Content-Type'] = 'text/plain';
+        }
+      }
+    }
+
+    const startTime = performance.now();
+    try {
+      const response = await fetch(url, requestOptions);
+      const endTime = performance.now();
+      const responseTime = (endTime - startTime).toFixed(2);
+
+      setResponseStatus(response.status);
+
+      const responseHeadersObj = {};
+      response.headers.forEach((value, name) => {
+        responseHeadersObj[name] = value;
+      });
+      setResponseHeaders(JSON.stringify(responseHeadersObj, null, 2));
+
+      const responseText = await response.text();
+      setFullResponseBody(responseText); // Store raw response for full view
+
+      let formattedBody = responseText;
+      try {
+        formattedBody = JSON.stringify(JSON.parse(responseText), null, 2);
+        setResponseBody(formattedBody);
+      } catch (e) {
+        setResponseBody(responseText); // Not JSON, display as plain text
+      }
+
+      showMessage(`Request successful! Status: ${response.status} (${responseTime} ms)`, 'success');
+
+      // Log activity
+      await logActivity('API Request', {
+        url,
+        method,
+        status: response.status,
+        responseTime: parseFloat(responseTime),
+        sharedResponseId: null // Will be updated if shared
+      });
+
+    } catch (error) {
+      showMessage(`Request Error: ${error.message}`, 'error');
+      setResponseStatus('Error');
+      setResponseBody(`Error: ${error.message}`);
+      await logActivity('API Request Failed', { url, method, error: error.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const shareResponse = async () => {
+    if (!user || !responseStatus) {
+      showMessage('Perform a request first and be logged in to share.', 'warning');
+      return;
+    }
+    setLoading(true);
+    try {
+      const responseData = {
+        userId: user.uid,
+        url,
+        method,
+        requestHeaders: headers,
+        requestBody: body,
+        responseStatus,
+        responseHeaders,
+        responseBody: fullResponseBody, // Store raw body for sharing
+        timestamp: serverTimestamp(),
+      };
+
+      const docRef = await addDoc(collection(db, `sharedResponses`), responseData);
+      const generatedShareLink = `${window.location.origin}/share/${docRef.id}`;
+      setShareLink(generatedShareLink);
+      showMessage('Response shared successfully!', 'success');
+
+      // Update activity log with shared link
+      await logActivity('Response Shared', {
+        url,
+        method,
+        status: responseStatus,
+        sharedResponseId: docRef.id,
+        shareLink: generatedShareLink
+      });
+
+    } catch (error) {
+      showMessage(`Error sharing response: ${error.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyShareLink = () => {
+    if (shareLink) {
+      document.execCommand('copy'); // Fallback for navigator.clipboard.writeText not working in some iframes
+      const textarea = document.createElement('textarea');
+      textarea.value = shareLink;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      showMessage('Share link copied to clipboard!', 'success');
+    }
+  };
+
+  return (
+    <div className="p-6 bg-gray-100 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-white">
+      <h2 className="text-3xl font-bold mb-6 text-center">API Request Tester</h2>
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="md:col-span-2">
+            <label htmlFor="url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL</label>
+            <input
+              type="text"
+              id="url"
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="e.g., https://api.example.com/data"
+            />
+          </div>
+          <div>
+            <label htmlFor="method" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Method</label>
+            <select
+              id="method"
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+              value={method}
+              onChange={(e) => setMethod(e.target.value)}
+            >
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="PATCH">PATCH</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="headers" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Headers (JSON)</label>
+          <textarea
+            id="headers"
+            rows="4"
+            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 font-mono text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+            value={headers}
+            onChange={(e) => setHeaders(e.target.value)}
+            placeholder='{"Content-Type": "application/json", "Authorization": "Bearer token"}'
+          ></textarea>
+        </div>
+
+        {(method !== 'GET' && method !== 'HEAD') && (
+          <div className="mb-4">
+            <label htmlFor="body" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Request Body (JSON or Text)</label>
+            <textarea
+              id="body"
+              rows="6"
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 font-mono text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder='{"key": "value", "number": 123}'
+            ></textarea>
+          </div>
+        )}
+
+        <button
+          onClick={sendRequest}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition-colors duration-200 shadow-md"
+          disabled={loading}
+        >
+          {loading ? <LoadingSpinner /> : 'Send Request'}
+        </button>
+      </div>
+
+      {responseStatus && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+          <h3 className="text-xl font-bold mb-4">Response</h3>
+
+          <div className="mb-4">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Status Code:</p>
+            <span className={`text-2xl font-bold ${getStatusCodeColor(responseStatus)}`}>
+              {responseStatus}
+            </span>
+          </div>
+
+          <div className="mb-4">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Headers:</p>
+            <pre className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md overflow-auto max-h-60">
+              <code ref={responseHeadersRef} className="language-json text-sm">
+                {responseHeaders}
+              </code>
+            </pre>
+          </div>
+
+          <div className="mb-4">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Response Body:</p>
+            <pre className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md overflow-auto max-h-96">
+              <code ref={responseBodyRef} className={responseBody.startsWith('{') || responseBody.startsWith('[') ? "language-json" : "language-text"}>
+                {responseBody}
+              </code>
+            </pre>
+            <button
+              onClick={() => {
+                setFullResponseBody(fullResponseBody); // Ensure the latest raw body is set
+                setShowFullResponseModal(true);
+              }}
+              className="mt-2 text-blue-600 hover:underline text-sm"
+            >
+              View Full Raw Response
             </button>
-        </div>
+          </div>
 
-        <!-- Main Chat Area -->
-        <div class="flex-grow flex flex-col bg-gray-950 p-6 shadow-xl shadow-green-500/10 relative">
-            <div id="chatAreaContent" class="flex-grow flex flex-col">
-                <div class="flex flex-col items-center justify-center flex-grow text-gray-500 text-2xl">
-                    <span class="text-green-500 text-4xl mb-4 animate-pulse">_</span>
-                    Select a room or create a new one to start chatting.
-                </div>
-            </div>
-
-            <!-- Message Input (hidden by default, shown when room is selected) -->
-            <div id="messageInputArea" class="hidden items-center border-t-2 border-green-700 pt-4">
-                <input
-                    type="text"
-                    id="newMessageInput"
-                    placeholder="Type your encrypted message..."
-                    class="flex-grow p-3 rounded-lg bg-gray-800 border-2 border-green-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-300 shadow-inner shadow-green-500/20"
-                />
-                <button id="sendMessageButton" class="ml-4 py-3 px-6 bg-green-700 hover:bg-green-600 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-md shadow-green-500/30 text-white font-bold">
-                    [SEND]
-                </button>
-            </div>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <button
+              onClick={shareResponse}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition-colors duration-200 shadow-md"
+              disabled={loading}
+            >
+              Share Response
+            </button>
+            {shareLink && (
+              <button
+                onClick={copyShareLink}
+                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md transition-colors duration-200 shadow-md"
+              >
+                Copy Share Link
+              </button>
+            )}
+          </div>
+          {shareLink && (
+            <p className="mt-4 text-sm text-gray-600 dark:text-gray-400 break-all">
+              Shareable Link: <a href={shareLink} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{shareLink}</a>
+            </p>
+          )}
         </div>
+      )}
+
+      <Modal isOpen={showFullResponseModal} onClose={() => setShowFullResponseModal(false)} title="Full Raw Response">
+        <pre className="p-3 bg-gray-100 dark:bg-gray-700 rounded-md overflow-auto max-h-[70vh] text-sm font-mono text-gray-900 dark:text-white">
+          {fullResponseBody}
+        </pre>
+      </Modal>
     </div>
+  );
+};
 
-    <!-- Profile Update Modal -->
-    <div id="profileModal" class="hidden fixed inset-0 modal-backdrop flex items-center justify-center z-50">
-        <div class="bg-gray-900 p-8 rounded-lg border-2 border-green-700 shadow-xl shadow-green-500/30 w-96">
-            <h3 class="text-2xl font-bold text-green-300 mb-6 border-b border-green-800 pb-2">
-                <span class="text-green-500">_</span>Update Profile
-            </h3>
-            <div class="mb-4">
-                <label for="profileNameInput" class="block text-green-400 text-sm mb-2">Display Name:</label>
-                <input
-                    type="text"
-                    id="profileNameInput"
-                    class="w-full p-2 rounded-md bg-gray-800 border border-green-700 text-white focus:outline-none focus:ring-1 focus:ring-green-500"
-                />
-            </div>
-            <div class="mb-6">
-                <label for="profilePicUrlInput" class="block text-green-400 text-sm mb-2">Profile Picture URL:</label>
-                <input
-                    type="text"
-                    id="profilePicUrlInput"
-                    placeholder="https://example.com/your-pic.jpg"
-                    class="w-full p-2 rounded-md bg-gray-800 border border-green-700 text-white focus:outline-none focus:ring-1 focus:ring-green-500"
-                />
-                <p class="text-xs text-gray-500 mt-1">
-                    (Direct image upload is not supported in this demo. Please provide a URL.)
-                </p>
-            </div>
-            <div class="flex justify-end">
-                <button id="cancelProfileUpdate" class="py-2 px-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-white mr-2 transition-colors">
-                    [CANCEL]
-                </button>
-                <button id="saveProfileUpdate" class="py-2 px-4 bg-green-700 hover:bg-green-600 rounded-lg text-white font-bold transition-colors">
-                    [UPDATE]
-                </button>
-            </div>
-        </div>
+// Profile Page Component
+const ProfilePage = ({ user, showMessage, logActivity, userId }) => {
+  const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [newPassword, setNewPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [activityHistory, setActivityHistory] = useState([]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const historyRef = collection(db, `artifacts/${appId}/users/${userId}/activityHistory`);
+    // Note: We are not using orderBy here to avoid index issues, sorting will be done in memory.
+    const unsubscribe = onSnapshot(historyRef, (snapshot) => {
+      const history = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Sort by timestamp in descending order in memory
+      history.sort((a, b) => (b.timestamp?.toDate() || 0) - (a.timestamp?.toDate() || 0));
+      setActivityHistory(history);
+    }, (error) => {
+      console.error("Error fetching activity history:", error);
+      showMessage(`Error loading activity history: ${error.message}`, 'error');
+    });
+
+    return () => unsubscribe();
+  }, [user, showMessage, userId]);
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (auth.currentUser) {
+        await updateProfile(auth.currentUser, { displayName });
+        showMessage('Profile updated successfully!', 'success');
+        await logActivity('Profile Updated', { newDisplayName: displayName });
+      }
+    } catch (error) {
+      showMessage(`Error updating profile: ${error.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (auth.currentUser && currentPassword && newPassword) {
+        const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+        await reauthenticateWithCredential(auth.currentUser, credential);
+        await updatePassword(auth.currentUser, newPassword);
+        showMessage('Password changed successfully! You might need to log in again.', 'success');
+        setNewPassword('');
+        setCurrentPassword('');
+        await logActivity('Password Changed');
+      } else {
+        showMessage('Please enter both current and new passwords.', 'warning');
+      }
+    } catch (error) {
+      showMessage(`Error changing password: ${error.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="p-6 bg-gray-100 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-white">
+      <h2 className="text-3xl font-bold mb-6 text-center">User Profile</h2>
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+        <h3 className="text-xl font-bold mb-4">Account Information</h3>
+        <p className="mb-2"><span className="font-semibold">Email:</span> {user?.email}</p>
+        <p className="mb-2"><span className="font-semibold">Display Name:</span> {user?.displayName || 'N/A'}</p>
+        <p className="mb-2"><span className="font-semibold">Account Created:</span> {formatDate(user?.metadata?.creationTime)}</p>
+        <p className="mb-2"><span className="font-semibold">Last Login:</span> {formatDate(user?.metadata?.lastSignInTime)}</p>
+        <p className="mb-2"><span className="font-semibold">User ID:</span> {userId}</p>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+        <h3 className="text-xl font-bold mb-4">Edit Profile</h3>
+        <form onSubmit={handleUpdateProfile} className="space-y-4">
+          <div>
+            <label htmlFor="editDisplayName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Display Name</label>
+            <input
+              type="text"
+              id="editDisplayName"
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition-colors duration-200 shadow-md"
+            disabled={loading}
+          >
+            {loading ? <LoadingSpinner /> : 'Update Profile'}
+          </button>
+        </form>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+        <h3 className="text-xl font-bold mb-4">Change Password</h3>
+        <form onSubmit={handleChangePassword} className="space-y-4">
+          <div>
+            <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current Password</label>
+            <input
+              type="password"
+              id="currentPassword"
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
+            <input
+              type="password"
+              id="newPassword"
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition-colors duration-200 shadow-md"
+            disabled={loading}
+          >
+            {loading ? <LoadingSpinner /> : 'Change Password'}
+          </button>
+        </form>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h3 className="text-xl font-bold mb-4">Activity History</h3>
+        {activityHistory.length === 0 ? (
+          <p className="text-gray-600 dark:text-gray-400">No activity logged yet.</p>
+        ) : (
+          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+            {activityHistory.map((activity) => (
+              <li key={activity.id} className="py-3">
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{activity.type}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{formatDate(activity.timestamp)}</p>
+                {activity.url && <p className="text-sm text-gray-700 dark:text-gray-300">URL: <span className="font-mono">{activity.url}</span></p>}
+                {activity.method && <p className="text-sm text-gray-700 dark:text-gray-300">Method: {activity.method}</p>}
+                {activity.status && <p className="text-sm text-gray-700 dark:text-gray-300">Status: {activity.status}</p>}
+                {activity.newDisplayName && <p className="text-sm text-gray-700 dark:text-gray-300">New Display Name: {activity.newDisplayName}</p>}
+                {activity.shareLink && (
+                  <p className="text-sm text-blue-500 mt-1">
+                    <a href={activity.shareLink} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                      View Shared Response
+                    </a>
+                  </p>
+                )}
+                {activity.error && <p className="text-sm text-red-500">Error: {activity.error}</p>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
+  );
+};
 
-    <!-- Create Room Modal -->
-    <div id="createRoomModal" class="hidden fixed inset-0 modal-backdrop flex items-center justify-center z-50">
-        <div class="bg-gray-900 p-8 rounded-lg border-2 border-green-700 shadow-xl shadow-green-500/30 w-96">
-            <h3 class="text-2xl font-bold text-green-300 mb-6 border-b border-green-800 pb-2">
-                <span class="text-green-500">_</span>Create New Room
-            </h3>
-            <div class="mb-4">
-                <label for="newRoomNameInput" class="block text-green-400 text-sm mb-2">Room Name:</label>
-                <input
-                    type="text"
-                    id="newRoomNameInput"
-                    class="w-full p-2 rounded-md bg-gray-800 border border-green-700 text-white focus:outline-none focus:ring-1 focus:ring-green-500"
-                    placeholder="e.g., 'DarkWeb Alley'"
-                />
-            </div>
-            <div class="flex justify-end">
-                <button id="cancelCreateRoom" class="py-2 px-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-white mr-2 transition-colors">
-                    [CANCEL]
-                </button>
-                <button id="confirmCreateRoom" class="py-2 px-4 bg-green-700 hover:bg-green-600 rounded-lg text-white font-bold transition-colors">
-                    [CREATE]
-                </button>
-            </div>
+// Shared Response Viewer Component
+const SharedResponseViewer = ({ responseId, showMessage }) => {
+  const [response, setResponse] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const responseBodyRef = useRef(null);
+  const responseHeadersRef = useRef(null);
+
+  const applySyntaxHighlighting = useCallback(() => {
+    if (window.Prism && response) {
+      if (responseBodyRef.current) {
+        window.Prism.highlightElement(responseBodyRef.current);
+      }
+      if (responseHeadersRef.current) {
+        window.Prism.highlightElement(responseHeadersRef.current);
+      }
+    }
+  }, [response]);
+
+  useEffect(() => {
+    const fetchSharedResponse = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const docRef = doc(db, `sharedResponses`, responseId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setResponse(data);
+          showMessage('Shared response loaded.', 'success');
+        } else {
+          setError('Response not found or invalid link.');
+          showMessage('Response not found or invalid link.', 'error');
+        }
+      } catch (e) {
+        setError(`Error loading response: ${e.message}`);
+        showMessage(`Error loading response: ${e.message}`, 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (responseId) {
+      fetchSharedResponse();
+    }
+  }, [responseId, showMessage]);
+
+  useEffect(() => {
+    if (response) {
+      applySyntaxHighlighting();
+    }
+  }, [response, applySyntaxHighlighting]);
+
+  const getStatusCodeColor = (status) => {
+    if (!status) return 'text-gray-500';
+    if (status >= 200 && status < 300) return 'text-green-500';
+    if (status >= 300 && status < 400) return 'text-yellow-500';
+    return 'text-red-500';
+  };
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <div className="p-6 text-red-500 text-center">{error}</div>;
+  if (!response) return <div className="p-6 text-gray-600 text-center">No response to display.</div>;
+
+  let formattedBody = response.responseBody;
+  try {
+    formattedBody = JSON.stringify(JSON.parse(response.responseBody), null, 2);
+  } catch (e) {
+    // Not JSON, keep as is
+  }
+
+  return (
+    <div className="p-6 bg-gray-100 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-white">
+      <h2 className="text-3xl font-bold mb-6 text-center">Shared API Response</h2>
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+        <h3 className="text-xl font-bold mb-4">Request Details</h3>
+        <p className="mb-2"><span className="font-semibold">URL:</span> <span className="font-mono">{response.url}</span></p>
+        <p className="mb-2"><span className="font-semibold">Method:</span> {response.method}</p>
+        <div className="mb-2">
+          <p className="font-semibold">Request Headers:</p>
+          <pre className="p-2 bg-gray-50 dark:bg-gray-700 rounded-md overflow-auto max-h-40">
+            <code className="language-json text-sm">
+              {response.requestHeaders || '{}'}
+            </code>
+          </pre>
         </div>
+        {(response.method !== 'GET' && response.method !== 'HEAD') && (
+          <div className="mb-2">
+            <p className="font-semibold">Request Body:</p>
+            <pre className="p-2 bg-gray-50 dark:bg-gray-700 rounded-md overflow-auto max-h-40">
+              <code className={response.requestBody?.startsWith('{') || response.requestBody?.startsWith('[') ? "language-json" : "language-text"}>
+                {response.requestBody || ''}
+              </code>
+            </pre>
+          </div>
+        )}
+        <p className="mb-2"><span className="font-semibold">Shared On:</span> {formatDate(response.timestamp)}</p>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h3 className="text-xl font-bold mb-4">Response Details</h3>
+        <div className="mb-4">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Status Code:</p>
+          <span className={`text-2xl font-bold ${getStatusCodeColor(response.responseStatus)}`}>
+            {response.responseStatus}
+          </span>
+        </div>
+        <div className="mb-4">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Headers:</p>
+          <pre className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md overflow-auto max-h-60">
+            <code ref={responseHeadersRef} className="language-json text-sm">
+              {response.responseHeaders}
+            </code>
+          </pre>
+        </div>
+        <div className="mb-4">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Response Body:</p>
+          <pre className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md overflow-auto max-h-96">
+            <code ref={responseBodyRef} className={formattedBody.startsWith('{') || formattedBody.startsWith('[') ? "language-json" : "language-text"}>
+              {formattedBody}
+            </code>
+          </pre>
+        </div>
+      </div>
     </div>
+  );
+};
 
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, updateProfile, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+// Main App Component
+const App = () => {
+  const [user, setUser] = useState(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+  const [currentPage, setCurrentPage] = useState('tester'); // 'tester', 'profile', 'auth', 'shared'
+  const [message, setMessage] = useState(null); // { type: 'success'|'error'|'warning', text: '...' }
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
 
-        // Firebase Configuration (from your provided details)
-        const appId = "1:72618637937:web:e89cca640172708f23f9d0";
-        const firebaseConfig = {
-            apiKey: "AIzaSyB_Q5EseET7WykS4WcIQs1Y7a-CMmcbnp8",
-            authDomain: "aapurti-9e385.firebaseapp.com",
-            databaseURL: "https://aapurti-9e385-default-rtdb.firebaseio.com",
-            projectId: "aapurti-9e385",
-            storageBucket: "aapurti-9e385.appspot.com",
-            messagingSenderId: "72618637937",
-            appId: "1:72618637937:web:e89cca640172708f23f9d0",
-            measurementId: "G-4C479V87YN"
-        };
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; // Keep for Canvas environment
+  // Function to show messages
+  const showMessage = useCallback((text, type = 'info') => {
+    setMessage({ text, type });
+    const timer = setTimeout(() => {
+      setMessage(null);
+    }, 5000); // Message disappears after 5 seconds
+    return () => clearTimeout(timer);
+  }, []);
 
-        let app;
-        let db;
-        let auth;
-        let currentUserId = null;
-        let currentUserProfile = null;
-        let selectedRoom = null;
-        let onlineUsers = [];
-        let chatRooms = []; // Keep track of rooms globally for activity rendering
-        let userRoomActivityData = [];
+  // Function to log activity to Firestore
+  const logActivity = useCallback(async (type, details = {}) => {
+    if (!user) return; // Only log for authenticated users
 
-        // DOM Elements
-        const authContainer = document.getElementById('authContainer');
-        const mainChatApp = document.getElementById('mainChatApp');
+    const userId = user.uid;
+    const activityData = {
+      type,
+      timestamp: serverTimestamp(),
+      ...details,
+    };
 
-        // Auth Forms
-        const loginForm = document.getElementById('loginForm');
-        const signupForm = document.getElementById('signupForm');
-        const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+    try {
+      // Use the correct Firestore path for private user data
+      await addDoc(collection(db, `artifacts/${appId}/users/${userId}/activityHistory`), activityData);
+    } catch (error) {
+      console.error("Error logging activity:", error);
+      showMessage(`Failed to log activity: ${error.message}`, 'error');
+    }
+  }, [user, showMessage]);
 
-        // Login Elements
-        const loginEmailInput = document.getElementById('loginEmail');
-        const loginPasswordInput = document.getElementById('loginPassword');
-        const loginButton = document.getElementById('loginButton');
-        const loginError = document.getElementById('loginError');
-        const showSignupButton = document.getElementById('showSignupButton');
-        const showForgotPasswordButton = document.getElementById('showForgotPasswordButton');
-
-        // Signup Elements
-        const signupNameInput = document.getElementById('signupName');
-        const signupEmailInput = document.getElementById('signupEmail');
-        const signupPasswordInput = document.getElementById('signupPassword');
-        const signupMobileInput = document.getElementById('signupMobile');
-        const signupDOBInput = document.getElementById('signupDOB');
-        const signupGenderSelect = document.getElementById('signupGender');
-        const signupButton = document.getElementById('signupButton');
-        const signupError = document.getElementById('signupError');
-        const backToLoginFromSignup = document.getElementById('backToLoginFromSignup');
-
-        // Forgot Password Elements
-        const forgotEmailInput = document.getElementById('forgotEmail');
-        const resetPasswordButton = document.getElementById('resetPasswordButton');
-        const forgotPasswordMessage = document.getElementById('forgotPasswordMessage');
-        const forgotPasswordError = document.getElementById('forgotPasswordError');
-        const backToLoginFromForgot = document.getElementById('backToLoginFromForgot');
-
-        // Main App Elements
-        const currentUserIdSpan = document.getElementById('currentUserId');
-        const profileButton = document.getElementById('profileButton');
-        const profilePicDisplay = document.getElementById('profilePicDisplay');
-        const chatRoomsList = document.getElementById('chatRoomsList');
-        const createRoomButton = document.getElementById('createRoomButton');
-        const onlineUsersList = document.getElementById('onlineUsersList');
-        const onlineUsersCountSpan = document.getElementById('onlineUsersCount');
-        const userRoomActivityDiv = document.getElementById('userRoomActivity');
-        const chatAreaContent = document.getElementById('chatAreaContent');
-        const messageInputArea = document.getElementById('messageInputArea');
-        const newMessageInput = document.getElementById('newMessageInput');
-        const sendMessageButton = document.getElementById('sendMessageButton');
-        const logoutButton = document.getElementById('logoutButton');
-
-        // Modals
-        const profileModal = document.getElementById('profileModal');
-        const profileNameInput = document.getElementById('profileNameInput');
-        const profilePicUrlInput = document.getElementById('profilePicUrlInput');
-        const cancelProfileUpdate = document.getElementById('cancelProfileUpdate');
-        const saveProfileUpdate = document.getElementById('saveProfileUpdate');
-
-        const createRoomModal = document.getElementById('createRoomModal');
-        const newRoomNameInput = document.getElementById('newRoomNameInput');
-        const cancelCreateRoom = document.getElementById('cancelCreateRoom');
-        const confirmCreateRoom = document.getElementById('confirmCreateRoom');
-
-        // --- Utility Functions ---
-        function formatTimestamp(timestamp) {
-            if (!timestamp) return 'N/A';
-            const date = timestamp.toDate();
-            return date.toLocaleString();
+  // Handle initial authentication and auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        setCurrentUserId(currentUser.uid);
+        if (!initialAuthToken) { // Only log if not signing in with custom token (which happens on initial load)
+          await logActivity('Logged In', { email: currentUser.email });
         }
-
-        function formatDuration(durationMs) {
-            if (!durationMs) return '0s';
-            const seconds = Math.floor(durationMs / 1000);
-            const minutes = Math.floor(seconds / 60);
-            const hours = Math.floor(minutes / 60);
-            const days = Math.floor(hours / 24);
-
-            if (days > 0) return `${days}d ${hours % 24}h`;
-            if (hours > 0) return `${hours}h ${minutes % 60}m`;
-            if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
-            return `${seconds}s`;
+        // Check if the current URL is a shared link
+        const path = window.location.pathname;
+        if (path.startsWith('/share/')) {
+          const responseId = path.split('/share/')[1];
+          setCurrentPage({ name: 'shared', id: responseId });
+        } else {
+          setCurrentPage('tester');
         }
-
-        function getUserDisplayName(uid) {
-            const user = onlineUsers.find(u => u.id === uid);
-            return user?.displayName || `Unknown User (${uid.substring(0, 6)})`;
+      } else {
+        setUser(null);
+        setCurrentUserId(null); // Clear userId if logged out
+        // If not authenticated, check if it's a shared link
+        const path = window.location.pathname;
+        if (path.startsWith('/share/')) {
+          const responseId = path.split('/share/')[1];
+          setCurrentPage({ name: 'shared', id: responseId });
+        } else {
+          setCurrentPage('auth');
         }
+      }
+      setLoadingAuth(false);
+    });
 
-        function getUserProfilePic(uid) {
-            const user = onlineUsers.find(u => u.id === uid);
-            return user?.profilePicUrl || `https://placehold.co/40x40/00FF00/000000?text=${uid[0].toUpperCase()}`;
+    // Attempt to sign in with custom token if available
+    const signInWithToken = async () => {
+      if (initialAuthToken) {
+        try {
+          await signInWithCustomToken(auth, initialAuthToken);
+          // onAuthStateChanged will handle setting the user
+        } catch (error) {
+          console.error("Error signing in with custom token:", error);
+          showMessage(`Failed to authenticate with token: ${error.message}`, 'error');
+          // Fallback to anonymous or regular auth if custom token fails
+          try {
+            await signInAnonymously(auth);
+            showMessage('Signed in anonymously.', 'info');
+          } catch (anonError) {
+            console.error("Error signing in anonymously:", anonError);
+            showMessage(`Failed to sign in: ${anonError.message}`, 'error');
+          }
         }
-
-        function scrollToBottom(element) {
-            element.scrollTop = element.scrollHeight;
+      } else {
+        // If no initial token, try anonymous sign-in
+        try {
+            await signInAnonymously(auth);
+            showMessage('Signed in anonymously.', 'info');
+        } catch (anonError) {
+            console.error("Error signing in anonymously:", anonError);
+            showMessage(`Failed to sign in: ${anonError.message}`, 'error');
         }
-
-        function showAuthForm(formToShow) {
-            loginForm.classList.add('hidden');
-            signupForm.classList.add('hidden');
-            forgotPasswordForm.classList.add('hidden');
-            loginError.classList.add('hidden');
-            signupError.classList.add('hidden');
-            forgotPasswordMessage.classList.add('hidden');
-            forgotPasswordError.classList.add('hidden');
-
-            formToShow.classList.remove('hidden');
-        }
-
-        function displayError(element, message) {
-            element.textContent = message;
-            element.classList.remove('hidden');
-        }
-
-        function hideError(element) {
-            element.classList.add('hidden');
-            element.textContent = '';
-        }
-
-        // --- Firebase Initialization and Authentication ---
-        async function initializeFirebase() {
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        currentUserId = user.uid;
-                        currentUserIdSpan.textContent = currentUserId;
-
-                        // Set user online status
-                        const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, user.uid);
-                        await setDoc(userDocRef, {
-                            displayName: user.displayName || `User-${user.uid.substring(0, 6)}`,
-                            profilePicUrl: user.photoURL || `https://placehold.co/40x40/00FF00/000000?text=${user.displayName ? user.displayName[0].toUpperCase() : 'U'}`,
-                            isOnline: true,
-                            lastSeen: serverTimestamp(),
-                            // New fields from signup
-                            mobile: currentUserProfile?.mobile || null,
-                            dob: currentUserProfile?.dob || null,
-                            gender: currentUserProfile?.gender || null,
-                        }, { merge: true });
-
-                        fetchUserProfile(user.uid);
-                        setupListeners(); // Start listening to data once authenticated
-
-                        // Show main app, hide auth container
-                        authContainer.classList.add('hidden');
-                        mainChatApp.classList.remove('hidden');
-                        mainChatApp.classList.add('flex'); // Ensure flex layout
-                    } else {
-                        // Show auth container, hide main app
-                        authContainer.classList.remove('hidden');
-                        mainChatApp.classList.add('hidden');
-                        mainChatApp.classList.remove('flex'); // Remove flex layout
-                        currentUserId = null;
-                        currentUserProfile = null;
-                        selectedRoom = null;
-                        onlineUsers = [];
-                        chatRooms = [];
-                        userRoomActivityData = [];
-                        renderChatRooms([]);
-                        renderOnlineUsers();
-                        renderUserRoomActivity();
-                        renderMessages([]); // Clear chat area
-                        messageInputArea.classList.add('hidden'); // Hide message input
-                    }
-                });
-
-                // Handle user going offline when window closes/refreshes
-                window.addEventListener('beforeunload', async () => {
-                    if (currentUserId && db) {
-                        const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, currentUserId);
-                        await updateDoc(userDocRef, { isOnline: false, lastSeen: serverTimestamp() });
-                    }
-                });
-
-            } catch (error) {
-                console.error("Error initializing Firebase:", error);
-                currentUserIdSpan.textContent = 'Error loading user.';
-            }
-        }
-
-        // --- Data Fetching and Listeners ---
-        function setupListeners() {
-            // Listen for user profile changes
-            if (currentUserId) {
-                onSnapshot(doc(db, `artifacts/${appId}/public/data/users`, currentUserId), (docSnap) => {
-                    if (docSnap.exists()) {
-                        currentUserProfile = docSnap.data();
-                        profilePicDisplay.src = currentUserProfile.profilePicUrl || `https://placehold.co/40x40/00FF00/000000?text=${currentUserProfile.displayName ? currentUserProfile.displayName[0].toUpperCase() : 'U'}`;
-                        profileNameInput.value = currentUserProfile.displayName || '';
-                        profilePicUrlInput.value = currentUserProfile.profilePicUrl || '';
-                    } else {
-                        // Create a basic profile if it doesn't exist (should be handled by signup now)
-                        console.warn("User profile not found in Firestore. This should ideally not happen after signup.");
-                        const defaultProfile = {
-                            displayName: `User-${currentUserId.substring(0, 6)}`,
-                            profilePicUrl: `https://placehold.co/40x40/00FF00/000000?text=${currentUserId[0].toUpperCase()}`,
-                            isOnline: true,
-                            lastSeen: serverTimestamp(),
-                        };
-                        setDoc(doc(db, `artifacts/${appId}/public/data/users`, currentUserId), defaultProfile, { merge: true });
-                        currentUserProfile = defaultProfile;
-                        profilePicDisplay.src = defaultProfile.profilePicUrl;
-                        profileNameInput.value = defaultProfile.displayName;
-                        profilePicUrlInput.value = defaultProfile.profilePicUrl;
-                    }
-                });
-            }
-
-            // Listen for chat rooms
-            onSnapshot(collection(db, `artifacts/${appId}/public/data/chatRooms`), (snapshot) => {
-                chatRooms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); // Update global chatRooms
-                renderChatRooms(chatRooms);
-                renderUserRoomActivity(); // Re-render activity as room names might be needed
-            });
-
-            // Listen for online users
-            onSnapshot(collection(db, `artifacts/${appId}/public/data/users`), (snapshot) => {
-                onlineUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderOnlineUsers();
-            });
-
-            // Listen for user room activity
-            if (currentUserId) {
-                onSnapshot(collection(db, `artifacts/${appId}/users/${currentUserId}/userRooms`), (snapshot) => {
-                    userRoomActivityData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderUserRoomActivity();
-                });
-            }
-        }
-
-        // Fetch user profile (called once on auth state change)
-        async function fetchUserProfile(uid) {
-            const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, uid);
-            const docSnap = await getDoc(userDocRef);
-            if (docSnap.exists()) {
-                currentUserProfile = docSnap.data();
-                profilePicDisplay.src = currentUserProfile.profilePicUrl || `https://placehold.co/40x40/00FF00/000000?text=${currentUserProfile.displayName ? currentUserProfile.displayName[0].toUpperCase() : 'U'}`;
-                profileNameInput.value = currentUserProfile.displayName || '';
-                profilePicUrlInput.value = currentUserProfile.profilePicUrl || '';
-            }
-        }
-
-        // --- Render Functions ---
-        function renderChatRooms(rooms) {
-            chatRoomsList.innerHTML = '';
-            rooms.forEach(room => {
-                const roomDiv = document.createElement('div');
-                roomDiv.className = `p-3 mb-2 rounded-lg cursor-pointer transition-all duration-300 flex justify-between items-center ${selectedRoom?.id === room.id ? 'bg-green-800 border-l-4 border-green-400 shadow-inner shadow-green-500/20' : 'bg-gray-800 hover:bg-gray-700 border-l-4 border-transparent'}`;
-                roomDiv.innerHTML = `<span class="text-green-200">${room.name}</span>`;
-
-                if (selectedRoom?.id === room.id) {
-                    const leaveButton = document.createElement('button');
-                    leaveButton.className = "text-red-400 hover:text-red-300 text-sm ml-2 px-2 py-1 rounded bg-red-800 hover:bg-red-700 transition-colors";
-                    leaveButton.textContent = "[LEAVE]";
-                    leaveButton.title = "Leave Room";
-                    leaveButton.onclick = (e) => {
-                        e.stopPropagation();
-                        handleLeaveRoom(room.id);
-                    };
-                    roomDiv.appendChild(leaveButton);
-                }
-
-                roomDiv.onclick = () => handleJoinRoom(room.id);
-                roomDiv.dataset.roomId = room.id; // Store room ID for re-rendering
-                chatRoomsList.appendChild(roomDiv);
-            });
-        }
-
-        function renderOnlineUsers() {
-            onlineUsersList.innerHTML = '';
-            onlineUsersCountSpan.textContent = onlineUsers.filter(u => u.isOnline).length;
-            onlineUsers.forEach(user => {
-                const userDiv = document.createElement('div');
-                userDiv.className = "flex items-center mb-2 p-2 bg-gray-800 rounded-lg";
-                userDiv.innerHTML = `
-                    <img src="${user.profilePicUrl || 'https://placehold.co/30x30/00FF00/000000?text=U'}" alt="User" class="w-7 h-7 rounded-full border border-green-500 object-cover mr-2">
-                    <span class="text-sm ${user.isOnline ? 'text-green-400' : 'text-gray-500'}">
-                        ${user.displayName}
-                    </span>
-                    ${user.isOnline ? '<span class="w-2 h-2 bg-green-500 rounded-full ml-2 animate-pulse" title="Online"></span>' : ''}
-                    ${!user.isOnline && user.lastSeen ? `<span class="text-xs text-gray-600 ml-auto">Last seen: ${formatTimestamp(user.lastSeen).split(',')[0]}</span>` : ''}
-                `;
-                onlineUsersList.appendChild(userDiv);
-            });
-        }
-
-        function renderMessages(messages) {
-            chatAreaContent.innerHTML = ''; // Clear previous content
-            if (!selectedRoom) {
-                chatAreaContent.innerHTML = `
-                    <div class="flex flex-col items-center justify-center flex-grow text-gray-500 text-2xl">
-                        <span class="text-green-500 text-4xl mb-4 animate-pulse">_</span>
-                        Select a room or create a new one to start chatting.
-                    </div>
-                `;
-                messageInputArea.classList.add('hidden');
-                messageInputArea.classList.remove('flex');
-                return;
-            }
-
-            // Display room header
-            const roomHeader = document.createElement('div');
-            roomHeader.className = "flex items-center justify-between mb-6 pb-4 border-b-2 border-green-700";
-            roomHeader.innerHTML = `
-                <h2 class="text-3xl font-bold text-green-300">
-                    <span class="text-green-500">_</span> ${selectedRoom.name}
-                </h2>
-            `;
-            chatAreaContent.appendChild(roomHeader);
-
-            // Messages container
-            const messagesContainer = document.createElement('div');
-            messagesContainer.className = "flex-grow overflow-y-auto custom-scrollbar pr-4 mb-4";
-            messagesContainer.id = "messagesContainer"; // Add ID for scrolling
-
-            messages.forEach(msg => {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `flex items-start mb-4 p-3 rounded-lg border-2 max-w-[70%] transition-all duration-300 transform hover:scale-[1.01] shadow-md shadow-green-500/10 ${msg.senderId === currentUserId ? 'bg-green-900 border-green-700 ml-auto flex-row-reverse' : 'bg-gray-800 border-gray-700'}`;
-                messageDiv.onmouseenter = () => handleMessageSeen(msg.id); // Mark as seen on hover
-
-                messageDiv.innerHTML = `
-                    <img src="${getUserProfilePic(msg.senderId)}" alt="Sender" class="w-10 h-10 rounded-full border-2 border-green-400 object-cover ${msg.senderId === currentUserId ? 'ml-3' : 'mr-3'}">
-                    <div class="flex flex-col ${msg.senderId === currentUserId ? 'items-end' : 'items-start'} flex-grow">
-                        <div class="flex items-center mb-1">
-                            <span class="font-bold text-green-300 text-sm">
-                                ${getUserDisplayName(msg.senderId)}
-                            </span>
-                            <span class="text-xs text-gray-500 ml-2">
-                                ${formatTimestamp(msg.timestamp)}
-                            </span>
-                        </div>
-                        <p class="text-white text-base break-words whitespace-pre-wrap">${msg.text}</p>
-                        <div class="flex mt-2 -mb-1" id="reactions-${msg.id}">
-                            ${Object.entries(msg.reactions || {}).map(([emoji, reactors]) =>
-                                reactors.length > 0 ? `
-                                    <span class="bg-gray-700 text-xs px-2 py-1 rounded-full mr-1 flex items-center border border-green-800">
-                                        ${emoji} <span class="ml-1 text-green-400">${reactors.length}</span>
-                                    </span>
-                                ` : ''
-                            ).join('')}
-                        </div>
-                        <div class="flex text-xs text-gray-500 mt-1">
-                            ${msg.delivered ? '<span class="mr-2">Delivered ✓</span>' : ''}
-                            ${msg.seenBy && msg.seenBy.length > 0 ? `<span>Seen by ${msg.seenBy.length} ${msg.seenBy.length === 1 ? 'user' : 'users'} ✓✓</span>` : ''}
-                        </div>
-                    </div>
-                    <div class="flex flex-col ml-2 ${msg.senderId === currentUserId ? 'order-first mr-3' : ''}">
-                        ${['👍', '😂', '❤️', '🔥', '💡'].map(emoji => `
-                            <button
-                                class="text-lg p-1 rounded-full hover:bg-gray-700 transition-colors mb-1 ${msg.reactions?.[emoji]?.includes(currentUserId) ? 'bg-green-700' : 'bg-gray-900'}"
-                                title="React with ${emoji}"
-                                data-message-id="${msg.id}"
-                                data-emoji="${emoji}"
-                            >
-                                ${emoji}
-                            </button>
-                        `).join('')}
-                    </div>
-                `;
-                messagesContainer.appendChild(messageDiv);
-            });
-
-            chatAreaContent.appendChild(messagesContainer);
-            messageInputArea.classList.remove('hidden');
-            messageInputArea.classList.add('flex');
-            scrollToBottom(messagesContainer);
-        }
-
-        function renderUserRoomActivity() {
-            userRoomActivityDiv.innerHTML = '';
-            if (userRoomActivityData.length === 0) {
-                userRoomActivityDiv.innerHTML = '<p class="text-gray-600 text-sm">No room activity recorded yet.</p>';
-                return;
-            }
-
-            userRoomActivityData.forEach(activity => {
-                // Find the corresponding room name from the global chatRooms list
-                const room = chatRooms.find(r => r.id === activity.id);
-                if (!room) return; // Skip if room not found (e.g., room was deleted)
-
-                const activityDiv = document.createElement('div');
-                activityDiv.className = "p-2 mb-2 bg-gray-800 rounded-lg text-sm";
-                activityDiv.innerHTML = `
-                    <span class="font-bold text-green-300">${room.name}</span><br>
-                    <span class="text-gray-500">Joined: ${formatTimestamp(activity.joinedAt)}</span><br>
-                    <span class="text-gray-500">Left: ${activity.leftAt ? formatTimestamp(activity.leftAt) : 'Still in room'}</span><br>
-                    <span class="text-gray-500">Duration: ${formatDuration(activity.duration)}</span>
-                `;
-                userRoomActivityDiv.appendChild(activityDiv);
-            });
-        }
-
-
-        // --- Authentication Event Handlers ---
-        loginButton.addEventListener('click', async () => {
-            const email = loginEmailInput.value;
-            const password = loginPasswordInput.value;
-            hideError(loginError);
-            if (!email || !password) {
-                displayError(loginError, "Email and password cannot be empty.");
-                return;
-            }
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-                // Auth state change listener will handle UI update
-            } catch (error) {
-                console.error("Login error:", error);
-                displayError(loginError, error.message);
-            }
-        });
-
-        showSignupButton.addEventListener('click', () => showAuthForm(signupForm));
-        backToLoginFromSignup.addEventListener('click', () => showAuthForm(loginForm));
-        showForgotPasswordButton.addEventListener('click', () => showAuthForm(forgotPasswordForm));
-        backToLoginFromForgot.addEventListener('click', () => showAuthForm(loginForm));
-
-
-        signupButton.addEventListener('click', async () => {
-            const name = signupNameInput.value.trim();
-            const email = signupEmailInput.value.trim();
-            const password = signupPasswordInput.value;
-            const mobile = signupMobileInput.value.trim();
-            const dob = signupDOBInput.value;
-            const gender = signupGenderSelect.value;
-            hideError(signupError);
-
-            if (!name || !email || !password) {
-                displayError(signupError, "Name, Email, and Password are required.");
-                return;
-            }
-            if (password.length < 6) {
-                displayError(signupError, "Password must be at least 6 characters long.");
-                return;
-            }
-
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-
-                // Update Firebase Auth profile
-                await updateProfile(user, {
-                    displayName: name,
-                    photoURL: `https://placehold.co/40x40/00FF00/000000?text=${name[0].toUpperCase()}`, // Default profile pic
-                });
-
-                // Store additional user data in Firestore
-                const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, user.uid);
-                await setDoc(userDocRef, {
-                    displayName: name,
-                    email: email,
-                    profilePicUrl: `https://placehold.co/40x40/00FF00/000000?text=${name[0].toUpperCase()}`,
-                    isOnline: true,
-                    lastSeen: serverTimestamp(),
-                    mobile: mobile || null,
-                    dob: dob || null,
-                    gender: gender || null,
-                });
-
-                // Auth state change listener will handle UI update
-            } catch (error) {
-                console.error("Signup error:", error);
-                displayError(signupError, error.message);
-            }
-        });
-
-        resetPasswordButton.addEventListener('click', async () => {
-            const email = forgotEmailInput.value.trim();
-            hideError(forgotPasswordError);
-            hideError(forgotPasswordMessage);
-
-            if (!email) {
-                displayError(forgotPasswordError, "Please enter your email address.");
-                return;
-            }
-            try {
-                await sendPasswordResetEmail(auth, email);
-                displayError(forgotPasswordMessage, "Password reset email sent! Check your inbox.");
-            } catch (error) {
-                console.error("Forgot password error:", error);
-                displayError(forgotPasswordError, error.message);
-            }
-        });
-
-        logoutButton.addEventListener('click', async () => {
-            if (currentUserId && db) {
-                const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, currentUserId);
-                await updateDoc(userDocRef, { isOnline: false, lastSeen: serverTimestamp() });
-            }
-            await signOut(auth);
-            // onAuthStateChanged will handle hiding the main app and showing auth forms
-        });
-
-        // --- Main App Event Handlers ---
-        async function handleSendMessage() {
-            if (db && currentUserId && selectedRoom?.id && newMessageInput.value.trim()) {
-                try {
-                    await addDoc(collection(db, `artifacts/${appId}/public/data/messages`), {
-                        roomId: selectedRoom.id,
-                        senderId: currentUserId,
-                        text: newMessageInput.value.trim(),
-                        timestamp: serverTimestamp(),
-                        reactions: {},
-                        delivered: true,
-                        seenBy: [],
-                    });
-                    newMessageInput.value = '';
-                    // Scroll to bottom after sending
-                    const messagesContainer = document.getElementById('messagesContainer');
-                    if (messagesContainer) {
-                        scrollToBottom(messagesContainer);
-                    }
-                } catch (error) {
-                    console.error("Error sending message:", error);
-                }
-            }
-        }
-
-        async function handleUpdateProfile() {
-            if (auth && currentUserId && db && currentUserProfile) {
-                try {
-                    // Update Firebase Auth profile
-                    await updateProfile(auth.currentUser, {
-                        displayName: profileNameInput.value,
-                        photoURL: profilePicUrlInput.value,
-                    });
-
-                    // Update Firestore user document
-                    const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, currentUserId);
-                    await updateDoc(userDocRef, {
-                        displayName: profileNameInput.value,
-                        profilePicUrl: profilePicUrlInput.value,
-                    });
-                    profileModal.classList.add('hidden');
-                } catch (error) {
-                    console.error("Error updating profile:", error);
-                }
-            }
-        }
-
-        async function handleCreateRoom() {
-            if (db && currentUserId && newRoomNameInput.value.trim()) {
-                try {
-                    const newRoomRef = await addDoc(collection(db, `artifacts/${appId}/public/data/chatRooms`), {
-                        name: newRoomNameInput.value.trim(),
-                        createdAt: serverTimestamp(),
-                        createdBy: currentUserId,
-                    });
-                    newRoomNameInput.value = '';
-                    createRoomModal.classList.add('hidden');
-                    // Automatically join the new room
-                    await handleJoinRoom(newRoomRef.id);
-                } catch (error) {
-                    console.error("Error creating room:", error);
-                }
-            }
-        }
-
-        async function handleJoinRoom(roomId) {
-            if (db && currentUserId) {
-                // First, if currently in a room, record leave time
-                if (selectedRoom && selectedRoom.id !== roomId) {
-                    await handleLeaveRoom(selectedRoom.id);
-                }
-
-                const userRoomDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/userRooms`, roomId);
-                const roomDocSnap = await getDoc(userRoomDocRef);
-
-                if (!roomDocSnap.exists()) {
-                    // Record join time if not already joined
-                    await setDoc(userRoomDocRef, {
-                        joinedAt: serverTimestamp(),
-                        leftAt: null,
-                        duration: 0,
-                    }, { merge: true });
-                } else {
-                    // If rejoining, update joinedAt and reset leftAt/duration
-                    await updateDoc(userRoomDocRef, {
-                        joinedAt: serverTimestamp(),
-                        leftAt: null,
-                        duration: 0,
-                    });
-                }
-
-                // Set the selected room and fetch its messages
-                const roomElement = chatRoomsList.querySelector(`[data-room-id="${roomId}"]`); // Use data-room-id
-                if (roomElement) {
-                    // Find the room object from the current list of rooms
-                    selectedRoom = chatRooms.find(r => r.id === roomId) || { id: roomId, name: roomElement.querySelector('span').textContent };
-
-                    // Remove current selected class from all rooms
-                    document.querySelectorAll('#chatRoomsList > div').forEach(div => {
-                        div.classList.remove('bg-green-800', 'border-l-4', 'border-green-400', 'shadow-inner', 'shadow-green-500/20');
-                        div.classList.add('bg-gray-800', 'hover:bg-gray-700', 'border-l-4', 'border-transparent');
-                        // Remove leave button from previous selected room
-                        const existingLeaveButton = div.querySelector('button');
-                        if (existingLeaveButton) existingLeaveButton.remove();
-                    });
-
-                    // Add selected class to the new room
-                    roomElement.classList.add('bg-green-800', 'border-l-4', 'border-green-400', 'shadow-inner', 'shadow-green-500/20');
-                    roomElement.classList.remove('bg-gray-800', 'hover:bg-gray-700', 'border-l-4', 'border-transparent');
-
-                    // Add leave button to the newly selected room
-                    const leaveButton = document.createElement('button');
-                    leaveButton.className = "text-red-400 hover:text-red-300 text-sm ml-2 px-2 py-1 rounded bg-red-800 hover:bg-red-700 transition-colors";
-                    leaveButton.textContent = "[LEAVE]";
-                    leaveButton.title = "Leave Room";
-                    leaveButton.onclick = (e) => {
-                        e.stopPropagation();
-                        handleLeaveRoom(roomId);
-                    };
-                    roomElement.appendChild(leaveButton);
-                }
-
-                // Listen for messages in the newly selected room
-                onSnapshot(
-                    query(collection(db, `artifacts/${appId}/public/data/messages`), where('roomId', '==', roomId)),
-                    (snapshot) => {
-                        const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-                            .sort((a, b) => a.timestamp?.toMillis() - b.timestamp?.toMillis());
-                        renderMessages(messages);
-                    }
-                );
-            }
-        }
-
-        async function handleLeaveRoom(roomId) {
-            if (db && currentUserId) {
-                const userRoomDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/userRooms`, roomId);
-                const roomDocSnap = await getDoc(userRoomDocRef);
-
-                if (roomDocSnap.exists()) {
-                    const joinedAt = roomDocSnap.data().joinedAt?.toMillis();
-                    const now = Date.now();
-                    const duration = joinedAt ? (now - joinedAt) : 0; // Duration in milliseconds
-
-                    await updateDoc(userRoomDocRef, {
-                        leftAt: serverTimestamp(),
-                        duration: (roomDocSnap.data().duration || 0) + duration, // Accumulate duration
-                    });
-                }
-                selectedRoom = null; // Deselect room
-                renderMessages([]); // Clear messages display
-                // Re-render rooms to update UI (remove leave button, etc.)
-                renderChatRooms(chatRooms); // Pass the current state of rooms
-            }
-        }
-
-        async function handleReaction(messageId, emoji) {
-            if (db && currentUserId && selectedRoom?.id) {
-                const messageDocRef = doc(db, `artifacts/${appId}/public/data/messages`, messageId);
-                const messageDocSnap = await getDoc(messageDocRef);
-
-                if (messageDocSnap.exists()) {
-                    const currentReactions = messageDocSnap.data().reactions || {};
-                    const usersForEmoji = currentReactions[emoji] || [];
-
-                    let newUsersForEmoji;
-                    if (usersForEmoji.includes(currentUserId)) {
-                        // User already reacted, remove reaction
-                        newUsersForEmoji = usersForEmoji.filter((id) => id !== currentUserId);
-                    } else {
-                        // User hasn't reacted, add reaction
-                        newUsersForEmoji = [...usersForEmoji, currentUserId];
-                    }
-
-                    const newReactions = {
-                        ...currentReactions,
-                        [emoji]: newUsersForEmoji,
-                    };
-
-                    // Remove emoji key if no users reacted to it
-                    if (newUsersForEmoji.length === 0) {
-                        delete newReactions[emoji];
-                    }
-
-                    await updateDoc(messageDocRef, {
-                        reactions: newReactions,
-                    });
-                }
-            }
-        }
-
-        async function handleMessageSeen(messageId) {
-            if (db && currentUserId && selectedRoom?.id) {
-                const messageDocRef = doc(db, `artifacts/${appId}/public/data/messages`, messageId);
-                const messageDocSnap = await getDoc(messageDocRef);
-
-                if (messageDocSnap.exists()) {
-                    const seenBy = messageDocSnap.data().seenBy || [];
-                    if (!seenBy.includes(currentUserId)) {
-                        await updateDoc(messageDocRef, {
-                            seenBy: [...seenBy, currentUserId],
-                        });
-                    }
-                }
-            }
-        }
-
-        // --- Event Listeners for DOM Elements ---
-        profileButton.addEventListener('click', () => {
-            profileModal.classList.remove('hidden');
-        });
-
-        cancelProfileUpdate.addEventListener('click', () => {
-            profileModal.classList.add('hidden');
-        });
-
-        saveProfileUpdate.addEventListener('click', handleUpdateProfile);
-
-        createRoomButton.addEventListener('click', () => {
-            createRoomModal.classList.remove('hidden');
-        });
-
-        cancelCreateRoom.addEventListener('click', () => {
-            createRoomModal.classList.add('hidden');
-        });
-
-        confirmCreateRoom.addEventListener('click', handleCreateRoom);
-
-        sendMessageButton.addEventListener('click', handleSendMessage);
-
-        newMessageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                handleSendMessage();
-            }
-        });
-
-        // Delegate reaction button clicks
-        chatAreaContent.addEventListener('click', (e) => {
-            const target = e.target;
-            if (target.tagName === 'BUTTON' && target.hasAttribute('data-message-id') && target.hasAttribute('data-emoji')) {
-                const messageId = target.dataset.messageId;
-                const emoji = target.dataset.emoji;
-                handleReaction(messageId, emoji);
-            }
-        });
-
-        // --- Initial Load ---
-        window.onload = initializeFirebase;
-
-    </script>
-</body>
-</html>
+      }
+    };
+
+    if (loadingAuth) { // Only run this once on initial load
+      signInWithToken();
+    }
+
+    return () => unsubscribe();
+  }, [initialAuthToken, logActivity, loadingAuth, showMessage]); // Only re-run if initialAuthToken changes
+
+  // Handle URL changes for shared links (e.g., if user navigates manually)
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path.startsWith('/share/')) {
+        const responseId = path.split('/share/')[1];
+        setCurrentPage({ name: 'shared', id: responseId });
+      } else if (user) {
+        setCurrentPage('tester');
+      } else {
+        setCurrentPage('auth');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [user]);
+
+  const handleLogout = async () => {
+    if (user) {
+      await logActivity('Logged Out', { email: user.email });
+    }
+    await signOut(auth);
+    showMessage('Logged out successfully.', 'success');
+    setCurrentPage('auth');
+  };
+
+  const handleAuthSuccess = () => {
+    // onAuthStateChanged listener will handle setting the user and navigating to 'tester'
+    // No explicit setCurrentPage('tester') here to avoid race conditions
+  };
+
+  const toggleTheme = () => {
+    setIsDarkTheme(!isDarkTheme);
+    document.documentElement.classList.toggle('dark', !isDarkTheme);
+  };
+
+  if (loadingAuth) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900">
+        <LoadingSpinner />
+        <p className="ml-3 text-gray-700 dark:text-gray-300">Loading authentication...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`min-h-screen flex flex-col ${isDarkTheme ? 'dark' : ''}`}>
+      {/* Global Message Display */}
+      {message && (
+        <div
+          className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-transform transform ${
+            message.type === 'success' ? 'bg-green-500' :
+            message.type === 'error' ? 'bg-red-500' :
+            'bg-blue-500'
+          } text-white`}
+        >
+          {message.text}
+        </div>
+      )}
+
+      {/* Navigation */}
+      {user && (currentPage.name !== 'shared' || user) && ( // Show nav if logged in or viewing shared link while logged in
+        <nav className="bg-gray-800 dark:bg-gray-950 p-4 shadow-md flex justify-between items-center">
+          <div className="flex items-center space-x-4">
+            <h1 className="text-white text-xl font-bold">Request Analyzer</h1>
+            <button
+              onClick={() => setCurrentPage('tester')}
+              className={`px-3 py-2 rounded-md transition-colors duration-200 ${
+                currentPage === 'tester' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              Tester
+            </button>
+            <button
+              onClick={() => setCurrentPage('profile')}
+              className={`px-3 py-2 rounded-md transition-colors duration-200 ${
+                currentPage === 'profile' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              Profile
+            </button>
+          </div>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full bg-gray-700 dark:bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-600 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Toggle dark mode"
+            >
+              {isDarkTheme ? (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.325 3.325l-.707.707M5.38 5.38l-.707-.707M18.615 5.38l.707-.707M5.38 18.615l-.707.707M12 7a5 5 0 100 10 5 5 0 000-10z"></path></svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9 9 0 008.354-5.646z"></path></svg>
+              )}
+            </button>
+            <span className="text-gray-300 text-sm hidden md:block">
+              Welcome, {user?.displayName || user?.email || 'Guest'}
+            </span>
+            <button
+              onClick={handleLogout}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-200"
+            >
+              Logout
+            </button>
+          </div>
+        </nav>
+      )}
+
+      {/* Main Content Area */}
+      <main className="flex-1">
+        {currentPage === 'auth' && <AuthPage onAuthSuccess={handleAuthSuccess} showMessage={showMessage} />}
+        {currentPage === 'tester' && user && <RequestTester user={user} showMessage={showMessage} logActivity={logActivity} />}
+        {currentPage === 'profile' && user && <ProfilePage user={user} showMessage={showMessage} logActivity={logActivity} userId={currentUserId} />}
+        {currentPage.name === 'shared' && <SharedResponseViewer responseId={currentPage.id} showMessage={showMessage} />}
+      </main>
+    </div>
+  );
+};
+
+export default App;
